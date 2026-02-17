@@ -55,6 +55,7 @@ private:
   bool requested_to_stop_ = false;
   PumpController *pump_controller_;
   CompressorController *compressor_controller_;
+  float dhw_pump_start_time_ = 0.0f;
 
   const char* DHWStateToString(DHWState state) const
   {
@@ -135,6 +136,7 @@ private:
   {
     ESP_LOGI("amber", "Stopping DHW pump.");
     id(dhw_pump_relay_switch).turn_off();
+    dhw_pump_start_time_ = 0.0f;
   }
 
   bool IsPredictedTemperatureAboveTarget()
@@ -204,11 +206,24 @@ private:
   bool IsHeatingSlowerThanMinimumAverageRate()
   {
     const uint32_t now = millis();
-    const float elapsed_min = (float)(now - compressor_controller_->GetStartTime()) / 60000.0f;
+  
+    // Don't enable backup heater based when DHW pump is not started yet.
+    if(dhw_pump_start_time_ == 0.0f)
+    {
+      return false;
+    }
+
+    // Start calculations after grace period to let the temperature settle.
+    if(now - dhw_pump_start_time_ < DHW_BACKUP_HEATER_GRACE_PERIOD_S * 1000UL)
+    {
+      return false;
+    }
+
+    const float elapsed_min = (float)(now - dhw_pump_start_time_) / 60000.0f;
     const float gained = id(dhw_temperature_tw_sensor).state - start_current_temperature;
     const float avg_rate = (elapsed_min > 0.1f) ? (gained / elapsed_min) : 0.0f;
     id(dhw_backup_current_avg_rate_sensor).publish_state(avg_rate);
-    if (avg_rate < id(dhw_backup_min_avg_rate).state && elapsed_min >= DHW_BACKUP_HEATER_GRACE_PERIOD_S / 60.0f)
+    if (avg_rate < id(dhw_backup_min_avg_rate).state && id(dhw_backup_min_avg_rate).state > 0.0f)
     {
       ESP_LOGI("amber", "DHW backup enable: avg_rate=%.3f°C/min < min=%.3f°C/min", avg_rate, id(dhw_backup_min_avg_rate).state);
       return true;
@@ -368,13 +383,9 @@ public:
       case DHWState::COMPRESSOR_RUNNING:
         pump_controller_->ApplySpeedChangeIfNeeded(GetPreferredPumpSpeed());
 
-        if(start_current_temperature == 0.0f)
-        {
-          start_current_temperature = id(dhw_temperature_tw_sensor).state;
-        }
-
         if(ShouldStartDhwPump())
         {
+          start_current_temperature = id(dhw_temperature_tw_sensor).state;
           ESP_LOGI("amber", "Starting DHW pump");
           id(dhw_pump_relay_switch).turn_on();
           SetNextState(DHWState::WAIT_DHW_PUMP_RUNNING);
@@ -418,6 +429,7 @@ public:
       case DHWState::WAIT_DHW_PUMP_RUNNING:
         if(id(dhw_pump_relay_switch).state)
         {
+          dhw_pump_start_time_ = millis();
           SetNextState(DHWState::COMPRESSOR_RUNNING);
         }
         break;
