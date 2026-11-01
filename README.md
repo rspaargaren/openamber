@@ -1,39 +1,46 @@
 ![GitHub Release](https://img.shields.io/github/v/release/Jordi1990/openamber)
 
+![HomeAssistant example](/docs/images/logo-512x512.png)
+
 # OpenAmber
 Open source control firmware based on ESPHome for Itho Daalderop Amber heat pump, replaces the WinCE controller with an ESP32.
 
-> [!CAUTION]
-> This firmware is very much experimental and far from a finished product.
+![UI](/docs/images/home.jpg)
 
-HomeAssistant dashboard example
+![UI](/docs/images/Bracket-Assembly-Front.jpeg)
+
+![Settings](/docs/images/openamber-settings.png)
+
+### HomeAssistant dashboard example
 ![HomeAssistant example](/docs/images/openamber-hass-example.png)
 
-Supply temperature regulation with PID-based compressor Hz modulation
+### Supply temperature regulation with PID-based compressor Hz modulation
 ![Supply temperature regulation with PID-based compressor Hz modulation](/docs/images/openamber-pid.png)
 
 ## Features
 - Domestic Hot Water/Three way valve control
 - Heating
-- Pump P0 full PWM control on customizable interval/duration/speed.
+- Cooling
+- Pump P0 full PWM control on customizable interval/duration/speed, including optional PID control on heating delta-T.
 - Compressor modulation based on PID controller.
 - Configure maximum power modes
 - Frost protection in 2 stages (similair to original software).
 - Software thermostat based on Tr sensor.
 - Heat curve(5-points).
+- Zone 2 support
+- Mixing zone 1 and zone 2 supported
 - Backup heater
+- External backup heater (Hybrid setup)
 - Boost after defrost using backup heater.
 - Sensors for error codes
 - Support external thermostats (Heating/Cooling input)
 - Support SG-Ready
+- Support EEBUS
+- Customizable defrost parameters
+- Customizable fan speed
 
 ## Todo
-- Support cooling
-- Tv1/Tv2 buffer support
-- Extend configuration options
-- Error handling
 - Support OpenTherm thermostats
-- EEPROM updates
 - .. More
 
 ## Hardware
@@ -46,7 +53,7 @@ Binary: openamber-esp32s3
 
 This is the preferred replacement for the WinCE controller as there is a touchscreen, RS485 and 24V input available.
 So the controller can be powered by the same cables which are now powering the WinCE controller.
-A 3D printed bracket to mount it properly is required.
+A 3D printed bracket to mount it properly is required. For more detail on how to integrate this screen module into the control unit, read the [Waveshare integration manual](docs/waveshare-screen-integration.md). 3D models for the bracket can also be found there, including a shop where the brackets can be ordered.
 
 ![UI](/docs/images/openamber-waveshare-display-ui.png)
 
@@ -73,19 +80,17 @@ Connect wires to your hardware RS485 port (Itho Daalderop Amber Control Module u
 
 ![Connect wires to your hardware RS485 port (Itho Daalderop Amber Control Module used in picture)](/docs/images/itho-module-install.png)
 
-When using the Waveshare ESP32-S3 Touch LCD 5'' you need to set the RS485 resistor dip switch to OFF state. Connect the modbus to RS485 A and B. For power move the 24V positive and ground of the WinCE to the VIN and GND pins of the display.
+When using the Waveshare ESP32-S3 Touch LCD 5'' you need to set the RS485 resistor dip switch to ON state. Connect the modbus to RS485 A and B. For power move the 24V positive, GND and FG of the WinCE to the VIN, GND and GND pins of the display.
 
 ## How can I contribute?
 - Test and provide feedback/bugs/suggestions
-- Sniff modbus traffic for TODO items
-- Analyze and document behavior of WinCE logic on TODO functionality.
-- Design bracket for the Waveshare ESP32-S3 5'' screen.
 
 ## Modbus addresses overview
 ### Inside unit (Address 11)
 #### Read
 | Address    | Function                            |
 |:----------:|:-----------------------------------:|
+| 1099–1113  | Output readback registers (see Write table below for mapping; polled every 15s to monitor for failsafe / reboot) |
 | 1199       | Room temperature (Tr)               |
 | 1200       | DHW Temperature (Tw)                |
 | 1201       | Heat/Cool water temperature (Tc)    |
@@ -97,6 +102,8 @@ When using the Waveshare ESP32-S3 Touch LCD 5'' you need to set the RS485 resist
 | 1212       | Pump P0 active                      |
 | 1213       | External cooling signal             |
 | 1214       | External heating signal             |
+| 1219       | External heating signal Zone 2      |
+| 1220       | Digital inputs / SG-Ready SGB (bit field, see below) | 
 | 1220       | SmartGrid Ready SGB                 | 
 | 1300       | Pump P1 active                      |
 | 1301       | Pump P2 active                      |
@@ -104,7 +111,28 @@ When using the Waveshare ESP32-S3 Touch LCD 5'' you need to set the RS485 resist
 | 1305       | Threeway valve state                |
 | 1309       | Backup heater active                |
 | 1208       | Outdoor coil temperature (Tv2)      |
+| 1225       | Status / sensor error register (see below) |
 | 1303       | Internal pump state                 |
+
+#### Status / Alarm codes (Address 1225)
+
+| Bitmask    | Function                                        |
+|:----------:|:-----------------------------------------------:|
+| 0x0001     | Room temperature sensor fault (F13, Tr 1199) |
+| 0x0002     | DHW temperature sensor fault (F14, Tw 1200)|
+| 0x0004     | Flow temperature sensor fault (F15, Tc 1201)|
+| 0x0008     | Heat pump flow temperature sensor fault (F16, Tuo 1202)|
+| 0x0010     | Heat pump return temperature sensor fault (F17, Tui 1203)|
+| 0x0020     | Condenser temperature sensor fault (F18, Tup 1204)|
+| 0x0040     | Sensor 1205                                     |
+| 0x0080     | Sensor 1206                                     |
+| 0x0100     | Zone 1 flow temperature sensor fault (F21, Tv1 1207)|
+| 0x0200     | Zone 2 flow temperature sensor fault (F22, Tv2 1208)|
+| 0x0400     | Sensor 1209                                     |
+| 0x0800     | Sensor 1210                                     |
+| 0x1000     | Inside unit communication failsafe                |
+| 0x4000     | Inside unit EEPROM fault                          |
+| 0x8000     | Pump feedback P0 alarm                       |
 
 #### Write
 | Address    | Function                                           |
@@ -112,12 +140,26 @@ When using the Waveshare ESP32-S3 Touch LCD 5'' you need to set the RS485 resist
 | 1099       | Pump P0 relay                                      |
 | 1100       | Pump P1 relay                                      |
 | 1101       | Pump P2 relay                                      |
-| 1103       | Pump P0 duty cycle (1000=OFF, 0=HIGH)              |
-| 1104       | Unknown, needed for initialization                 |
-| 1105       | 3-way valve DHW                                    |
+| 1102       | DHW pump relay                                     |
+| 1103       | Pump P0 PWM duty cycle (0–1000, >900=OFF, 0=MAX)   |
+| 1104       | Main initialization relay (HO)                     |
+| 1105       | 3-way valve Heat/Cool                              |
+| 1106       | Mixing valve zone 1 (0–100%)                       |
+| 1107       | Mixing valve zone 2 (0–100%)                       |
+| 1108       | External backup heating relay (Hybrid setup)       |
 | 1109       | Backup heater stage 1 relay                        |
 | 1110       | Backup heater stage 2 relay                        |
-| 1112       | 3-way valve SWW                                    |
+| 1111       | Relay PD6 (hardware failsafe activates this relay) |
+| 1112       | 3-way valve DHW                                    |
+| 1113       | Relay PD8                                          |
+
+#### Digital inputs (Address 1220)
+
+| Bitmask    | Function                                  |
+|:----------:|:-----------------------------------------:|
+| 0x01       | Digital input PE6 (SmartGrid Ready SGB)          |
+| 0x02       | Digital input PE14 inside unit                    |
+| 0x04       | Digital input PE15 inside unit                    |
 
 ### Outside unit (Address 2)
 #### Read

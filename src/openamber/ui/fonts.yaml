@@ -1,16 +1,12 @@
 
-- file:
-    type: gfonts
-    family: "Roboto"
-    weight: 700
+- file: "openamber/ui/fonts/Inter_28pt-SemiBold.ttf"
+  #weight: 700
   id: font_header_title
   size: 32
   bpp: 4
 
-- file:
-    type: gfonts
-    family: "Roboto"
-    weight: 500
+- file: "openamber/ui/fonts/Inter_28pt-SemiBold.ttf"
+  #weight: 500
   id: font_mdi_24
   size: 24
   bpp: 4
@@ -20,6 +16,7 @@
         - "\U000F0238"  # mdi-flame
         - "\U000F0717"  # mdi-snowflake
         - "\U000F058F"  # mdi-water-pump
+        - "\U000F058C"  # mdi-water
         - "\U000F1AAF"  # mdi-heating-coil
         - "\U000F01C2"  # mdi-delta
         - "\U000F0210"  # mdi-fan
@@ -30,14 +27,59 @@
         - "\U000F0902"  # mdi-power-off
         - "\U000F08BB"  # mdi-cog-outline
         - "\U000F08D4"  # mdi-chart-line
+        - "\U000F035B"  # mdi-memory
         - "\U000F0BE0"  # mdi-wrench-outline
         - "\U000F0F29"  # mdi-snowflake-alert
         - "\U000F12CB"  # mdi-snowflake-melt
         - "\U000F1A44"  # mdi-heat-pump-outline
-- file:
-    type: gfonts
-    family: "Roboto"
-    weight: 500
+        - "\U000F091F"  # mdi-wifi-strength-1
+        - "\U000F0922"  # mdi-wifi-strength-2
+        - "\U000F0925"  # mdi-wifi-strength-3
+        - "\U000F0928"  # mdi-wifi-strength-4
+        - "\U000F092E"  # mdi-wifi-strength-off-outline
+        - "\U000F07D0"  # mdi-home-assistant
+        - "\U000F03EB"  # mdi-update
+        - "\U000F04A0"  # mdi-cogs
+        - "\U000F0493"  # mdi-tune
+        - "\U000F0EBB"  # mdi-lightning-bolt
+        - "\U000F1603"  # mdi-water-boiler
+        - "\U000F0374"  # mdi-minus
+        - "\U000F0415"  # mdi-plus
+        - "\U000F0759"  # mdi-snowflake-variant (koelen)
+        - "\U000F0502"  # mdi-speedometer (compressor)
+        - "\U000F04DB"  # mdi-shield-check (vorstbesch)
+        - "\U000F0F54"  # mdi-calendar-clock (schema)
+        - "\U000F0026"  # mdi-alert (legionella)
+        - "\U000F0045"  # mdi-arrow-down (flow)
+        - "\U000F005D"  # mdi-arrow-up (flow)
+        - "\U000F0141"  # mdi-chevron-left (pagination)
+        - "\U000F0142"  # mdi-chevron-right (pagination)
+        - "\U000F0337"  # mdi-link (EEBUS verbonden)
+        - "\U000F0338"  # mdi-link-off (EEBUS niet verbonden)
+
+- file: "openamber/ui/fonts/Inter_28pt-SemiBold.ttf"
+  #weight: 500
+  id: font_text_24
+  size: 24
+  bpp: 4
+  extras:
+    - file: "openamber/ui/fonts/materialdesignicons-webfont.ttf"
+      glyphs:
+        - "\U000F0140"  # mdi-chevron-down (dropdown arrow)
+
+- file: "openamber/ui/fonts/Inter_28pt-SemiBold.ttf"
+  #weight: 500
+  id: font_text_20
+  size: 20
+  bpp: 4
+  extras:
+    - file: "openamber/ui/fonts/materialdesignicons-webfont.ttf"
+      glyphs:
+        - "\U000F0140"  # mdi-chevron-down (dropdown arrow)
+        - "\U000F0208"  # mdi-eye
+        - "\U000F0209"  # mdi-eye-off
+- file: "openamber/ui/fonts/Inter_28pt-SemiBold.ttf"
+  #weight: 500
   id: font_value_big
   size: 32
   bpp: 4
@@ -45,3 +87,49 @@
     - file: "openamber/ui/fonts/materialdesignicons-webfont.ttf"
       glyphs:
         - "\U000F01C2"  # mdi-delta
+
+- file: "openamber/ui/fonts/Inter_28pt-SemiBold.ttf"
+  #weight: 500
+  id: font_mdi_30
+  size: 30
+  bpp: 4
+  extras:
+    - file: "openamber/ui/fonts/materialdesignicons-webfont.ttf"
+      glyphs:
+        - "\U000F0238"  # mdi-flame
+        - "\U000F0717"  # mdi-snowflake
+        - "\U000F0759"  # mdi-snowflake-variant
+        - "\U000F058F"  # mdi-water-pump
+        - "\U000F058C"  # mdi-water
+        - "\U000F0906"  # mdi-power-standby
+        - "\U000F0902"  # mdi-power-off
+        - "\U000F0374"  # mdi-minus
+        - "\U000F0415"  # mdi-plus
+        - "\U000F0026"  # mdi-alert
+        - "\U000F0F29"  # mdi-snowflake-alert
+        - "\U000F091F"  # mdi-wifi-strength-1
+        - "\U000F0922"  # mdi-wifi-strength-2
+        - "\U000F0925"  # mdi-wifi-strength-3
+        - "\U000F0928"  # mdi-wifi-strength-4
+        - "\U000F092E"  # mdi-wifi-strength-off-outline
+        - "\U000F07D0"  # mdi-home-assistant
+
+- file: "openamber/ui/fonts/Inter_28pt-SemiBold.ttf"
+  #weight: 500
+  id: font_mdi_36
+  size: 36
+  bpp: 4
+  extras:
+    - file: "openamber/ui/fonts/materialdesignicons-webfont.ttf"
+      glyphs:
+        - "\U000F0238"  # mdi-flame
+        - "\U000F0717"  # mdi-snowflake
+        - "\U000F058F"  # mdi-water-pump
+        - "\U000F091F"  # mdi-wifi-strength-1
+        - "\U000F0922"  # mdi-wifi-strength-2
+        - "\U000F0925"  # mdi-wifi-strength-3
+        - "\U000F0928"  # mdi-wifi-strength-4
+        - "\U000F092E"  # mdi-wifi-strength-off-outline
+        - "\U000F07D0"  # mdi-home-assistant
+        - "\U000F035B"  # mdi-memory
+        - "\U000F1A44"  # mdi-heat-pump-outline

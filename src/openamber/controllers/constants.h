@@ -25,29 +25,63 @@
 // TIMING CONSTANTS (in seconds)
 // ============================================================================
 
+static const uint32_t INITIALIZATION_DELAY_S = 10;
+
+// Modbus connection
+static const uint32_t MODBUS_CONNECTION_TIMEOUT_S = 2 * 60;
+
 // Three-way valve
 static const uint32_t THREE_WAY_VALVE_SWITCH_TIME_S = 1 * 60;
+static const uint32_t THREE_WAY_VALVE_PROTECTION_DELTA_TEMPERATURE_C = 5.0f;
+static const uint32_t THREE_WAY_VALVE_PROTECTION_HIGH_TEMPERATURE_TIME_S = 2 * 60;
+static const float THREE_WAY_VALVE_PROTECTION_TUO_TC_THRESHOLD_C = 5.0f;
 
 // Compressor timing
-static const uint32_t COMPRESSOR_MIN_OFF_S = 1 * 60;
+static const uint32_t COMPRESSOR_MIN_OFF_S = 2 * 60;
 static const uint32_t COMPRESSOR_MIN_ON_S = 10 * 60;
 static const uint32_t COMPRESSOR_SOFT_START_DURATION_S = 3 * 60;
-static const uint32_t COMPRESSOR_MIN_TIME_PUMP_ON = 5 * 60;
+static const uint32_t COMPRESSOR_START_TIMEOUT_S = 2 * 60;
+static const uint32_t COMPRESSOR_MIN_TIME_PUMP_ON = 2 * 60;
 static const uint32_t COMPRESSOR_SETTLE_TIME_AFTER_DEFROST_S = 5 * 60;
+// The outdoor unit raises 2118 up to 300 s before the actual defrost when it decides itself (3274 = 1).
+// The actual defrost starts once the compressor runs at the defrost standby frequency (3279).
+static const uint32_t DEFROST_PREPHASE_MAX_S = 330;
+static const float DEFROST_STANDBY_FREQUENCY_MARGIN_HZ = 5.0f;
+// After 2118 drops the unit switches the 4-way valve back and restarts the fan within 30 s.
+static const uint32_t DEFROST_RECOVERY_PHASE_S = 30;
 static const uint32_t FREQUENCY_CHANGE_INTERVAL_DOWN_S = 10;
 static const uint32_t FREQUENCY_CHANGE_INTERVAL_UP_S = 5 * 60;
 
+// Discharge side limiter: stay below the outdoor unit's own Pd/Td protection instead of running
+// into it. The limits are margins below the unit's "no further frequency increase" thresholds,
+// read from 3269 (Pd) and 3262 (Td); the defaults are used until those are read (EEPROM 114).
+static const float DISCHARGE_LIMIT_DEFAULT_UNIT_PD_BAR = 26.0f;
+static const float DISCHARGE_LIMIT_DEFAULT_UNIT_TD_C = 95.0f;
+static const float DISCHARGE_LIMIT_HOLD_PD_MARGIN_BAR = 2.0f;
+static const float DISCHARGE_LIMIT_STEP_DOWN_PD_MARGIN_BAR = 1.0f;
+static const float DISCHARGE_LIMIT_RELEASE_PD_MARGIN_BAR = 3.0f;
+static const float DISCHARGE_LIMIT_HOLD_TD_MARGIN_C = 5.0f;
+static const float DISCHARGE_LIMIT_STEP_DOWN_TD_MARGIN_C = 2.0f;
+static const float DISCHARGE_LIMIT_RELEASE_TD_MARGIN_C = 8.0f;
+static const uint32_t DISCHARGE_LIMIT_STEP_DOWN_INTERVAL_S = 60;
+static const int DISCHARGE_LIMIT_MIN_MODE = 1;
+
+// Pump timing
+static const uint32_t PUMP_START_TIMEOUT_S = 2 * 60;
+static const uint32_t PUMP_STOP_TIMEOUT_S = 2 * 60;
+
 // Backup heater timing
 static const uint32_t BACKUP_HEATER_LOOKAHEAD_S = 2 * 60;
+static const uint32_t BACKUP_HEATER_PREDICTION_SETTLE_TIME_S = 5 * 60;
 static const uint32_t BACKUP_HEATER_OFF_SETTLE_TIME_S = 2 * 60;
 static const uint32_t DHW_BACKUP_HEATER_GRACE_PERIOD_S = 10 * 60;
 
-
-// ============================================================================
-// TEMPERATURE CONSTANTS
-// ============================================================================
-
-static const float DEAD_BAND_DT = 1.0f;
+// Dhw
+static const uint32_t DHW_PUMP_TEMPERATURE_SETTLE_TIME_S = 2 * 60;
+// Window over which the DHW heating rate (°C/min) is averaged. Tw is polled every 15s over Modbus
+// with limited resolution, so a rate taken between two 5s controller updates is mostly 0 with
+// occasional spikes; averaging over a few minutes gives the actual heating speed.
+static const uint32_t DHW_HEATING_RATE_WINDOW_S = 3 * 60;
 
 
 // ============================================================================
@@ -57,6 +91,7 @@ static const float DEAD_BAND_DT = 1.0f;
 static const uint32_t WORKING_MODE_STANDBY = 0;
 static const uint32_t WORKING_MODE_COOLING = 1;
 static const uint32_t WORKING_MODE_HEATING = 2;
+static const uint32_t WORKING_MODE_MAINTENANCE = 3;
 
 
 // ============================================================================
@@ -65,3 +100,29 @@ static const uint32_t WORKING_MODE_HEATING = 2;
 
 static const uint32_t DHW_START_PUMP_MODE_DELTA_T = 0;
 static const uint32_t DHW_START_PUMP_MODE_DIRECT = 1;
+
+// ============================================================================
+// EEPROM VERSIONS
+// ============================================================================
+static const uint32_t EEPROM_VERSION_AMBER = 114;
+static const uint32_t EEPROM_VERSION_HPS = 29184;
+
+// ============================================================================
+// DEAERATION ROUTINE
+// ============================================================================
+
+// Shared
+static const uint32_t DEAERATION_HIGH_SPEED_PWM = 100;      // % pump speed high phase
+static const uint32_t DEAERATION_LOW_SPEED_PWM = 30;        // % pump speed low phase
+static const uint32_t DEAERATION_PUMP_START_TIMEOUT_S = 2 * 60;
+static const uint32_t DEAERATION_PUMP_STOP_WAIT_S = 5;      // Timed wait instead of flow switch
+
+// Short mode (~10 min total)
+static const uint32_t DEAERATION_SHORT_CYCLES = 3;
+static const uint32_t DEAERATION_SHORT_HIGH_SPEED_DURATION_S = 60;
+static const uint32_t DEAERATION_SHORT_LOW_SPEED_DURATION_S = 30;
+
+// Extended mode (~31 min total)
+static const uint32_t DEAERATION_EXTENDED_CYCLES = 5;
+static const uint32_t DEAERATION_EXTENDED_HIGH_SPEED_DURATION_S = 2 * 60;
+static const uint32_t DEAERATION_EXTENDED_LOW_SPEED_DURATION_S = 60;

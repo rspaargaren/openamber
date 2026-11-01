@@ -1,0 +1,843 @@
+# ══════════════════════════════════════════════════════════════
+# Number → LVGL UI bindings (event-driven via !extend)
+# These extend numbers defined in common/numbers.yaml to add
+# on_value callbacks that update settings LVGL labels on change.
+# ══════════════════════════════════════════════════════════════
+
+# ── Sensor kalibratie ──
+- id: !extend tr_offset
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_tr_offset_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend tw_offset
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_tw_offset_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend tc_offset
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_tc_offset_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend tui_offset
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_tui_offset_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend tuo_offset
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_tuo_offset_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend flow_sensor_calibration
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_flow_sensor_calibration_val
+          text:
+            format: "%.0f p/l"
+            args: ['x']
+
+# ── Vorstbescherming ──
+- id: !extend frost_protection_stage_1_temp_ta
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_frost1_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend frost_protection_stage_2_temp_ta
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_frost2_ta_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend frost_protection_stage_2_temp_tui
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_frost2_tui_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend defrost_backup_heater_boost_temperature_sensor
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_defrost_boost_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+# ── Algemeen: Bodemplaat & Defrost ──
+- id: !extend bottomplate_heater_ambient_temperature_start
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_bottomplate_start_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend bottomplate_heater_ambient_hysteresis_stop
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_bottomplate_hysteresis_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend enter_defrost_temperature
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_defrost_enter1_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend exit_defrost_temperature
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_defrost_exit_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend max_defrost_time
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_defrost_max_time_val
+          text:
+            format: "%.0f min"
+            args: ['x']
+
+- id: !extend enter_defrost_temperature_2
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_defrost_enter2_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend enter_defrost_temperature_3
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_defrost_enter3_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend enter_defrost_temperature_4
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_defrost_enter4_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+# ── Pomp ──
+- id: !extend pump_speed_heating_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_heat_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend pump_speed_cooling_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_cool_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend pump_speed_dhw_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_dhw_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend pump_interval
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_interval_val
+          text:
+            format: "%.0f min"
+            args: ['x']
+
+- id: !extend pump_duration
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_dur_val
+          text:
+            format: "%.0f min"
+            args: ['x']
+
+- id: !extend flow_switch_safety_delay_minutes
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_flow_switch_safety_delay_val
+          text:
+            format: "%.0f min"
+            args: ['x']
+
+- id: !extend pump_p0_pid_target_delta_t
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_pid_target_delta_t_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend pump_p0_pid_min_pwm
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_pid_min_pwm_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend pump_p0_pid_max_pwm
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_pid_max_pwm_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend pump_p0_pid_defrost_pwm
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_pid_defrost_pwm_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend pump_p0_pid_kp
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_pid_kp_val
+          text:
+            format: "%.2f"
+            args: ['x']
+      - lvgl.label.update:
+          id: set_adv_pump_pid_kp_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pump_p0_pid_ki
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_pid_ki_val
+          text:
+            format: "%.4f"
+            args: ['x']
+      - lvgl.label.update:
+          id: set_adv_pump_pid_ki_val
+          text:
+            format: "%.4f"
+            args: ['x']
+
+- id: !extend pump_p0_pid_kd
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_pump_pid_kd_val
+          text:
+            format: "%.2f"
+            args: ['x']
+      - lvgl.label.update:
+          id: set_adv_pump_pid_kd_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+# ── Compressor ──
+- id: !extend compressor_start_delta_heating
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_comp_start_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend compressor_stop_delta_heating
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_comp_stop_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend compressor_start_delta_cooling
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_comp_start_cool_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend compressor_stop_delta_cooling
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_comp_stop_cool_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend fan_speed_manual_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: service_fan_slider_value
+          text:
+            format: "%.0f RPM"
+            args: ['id(fan_speed_manual_number).state']
+      - lambda: |-
+          if (id(service_fan_slider) != nullptr) {
+            lv_slider_set_value(id(service_fan_slider), (int) id(fan_speed_manual_number).state, LV_ANIM_OFF);
+          }
+
+- id: !extend pid_heat_kp
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_heat_pid_kp_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_heat_ki
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_heat_pid_ki_val
+          text:
+            format: "%.4f"
+            args: ['x']
+
+- id: !extend pid_heat_kd
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_heat_pid_kd_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_heat_deadband
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_heat_pid_deadband_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend pid_cool_kp
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_cool_pid_kp_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_cool_ki
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_cool_pid_ki_val
+          text:
+            format: "%.4f"
+            args: ['x']
+
+- id: !extend pid_cool_kd
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_cool_pid_kd_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_cool_deadband
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_cool_pid_deadband_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+# ── Mengventiel zone 1 PID ──
+- id: !extend pid_mixing_valve_zone1_kp
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z1_pid_kp_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_mixing_valve_zone1_ki
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z1_pid_ki_val
+          text:
+            format: "%.4f"
+            args: ['x']
+
+- id: !extend pid_mixing_valve_zone1_kd
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z1_pid_kd_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_mixing_valve_zone1_deadband
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z1_pid_deadband_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+# ── Mengventiel zone 2 PID ──
+- id: !extend pid_mixing_valve_zone2_kp
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z2_pid_kp_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_mixing_valve_zone2_ki
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z2_pid_ki_val
+          text:
+            format: "%.4f"
+            args: ['x']
+
+- id: !extend pid_mixing_valve_zone2_kd
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z2_pid_kd_val
+          text:
+            format: "%.2f"
+            args: ['x']
+
+- id: !extend pid_mixing_valve_zone2_deadband
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z2_pid_deadband_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend cooling_setpoint_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_cool_setpoint_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend heat_curve_m10
+  on_value:
+    then:
+      - script.execute: update_heat_curve_chart
+
+- id: !extend heat_curve_0
+  on_value:
+    then:
+      - script.execute: update_heat_curve_chart
+
+- id: !extend heat_curve_p5
+  on_value:
+    then:
+      - script.execute: update_heat_curve_chart
+
+- id: !extend heat_curve_p10
+  on_value:
+    then:
+      - script.execute: update_heat_curve_chart
+
+- id: !extend heat_curve_p15
+  on_value:
+    then:
+      - script.execute: update_heat_curve_chart
+
+- id: !extend heat_curve_z2_m10
+  on_value:
+    then:
+      - script.execute: update_heat_curve_z2_chart
+
+- id: !extend heat_curve_z2_0
+  on_value:
+    then:
+      - script.execute: update_heat_curve_z2_chart
+
+- id: !extend heat_curve_z2_p5
+  on_value:
+    then:
+      - script.execute: update_heat_curve_z2_chart
+
+- id: !extend heat_curve_z2_p10
+  on_value:
+    then:
+      - script.execute: update_heat_curve_z2_chart
+
+- id: !extend heat_curve_z2_p15
+  on_value:
+    then:
+      - script.execute: update_heat_curve_z2_chart
+
+- id: !extend backup_heater_degmin_threshold
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_degmin_val
+          text:
+            format: "%.0f °C·min"
+            args: ['x']
+
+# ── SmartGrid ──
+- id: !extend sg_ready_heating_boost_temperature_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_sg_heat_boost_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend sg_ready_dhw_boost_temperature_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_sg_dhw_boost_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+# ── DHW ──
+- id: !extend dhw_setpoint_temperature
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_dhw_setpoint_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend dhw_restart_dhw_delta
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_dhw_restart_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend dhw_temperature_threshold_max_compressor_mode
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_dhw_winter_temp_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+- id: !extend dhw_backup_min_avg_rate
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_dhw_rate_val
+          text:
+            format: "%.2f °C/min"
+            args: ['x']
+
+- id: !extend dhw_backup_min_avg_rate_delay_minutes
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_dhw_rate_delay_val
+          text:
+            format: "%.0f min"
+            args: ['x']
+
+# ── Legionella ──
+- id: !extend legio_repeat_days_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_legio_days_val
+          text:
+            format: "%.0f d"
+            args: ['x']
+
+- id: !extend legio_target_temperature_number
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_legio_temp_val
+          text:
+            format: "%.0f°C"
+            args: ['x']
+
+# ── Interne thermostaat ──
+- id: !extend thermostat_default_heat_setpoint
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_therm_def_heat_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend thermostat_default_cool_setpoint
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_therm_def_cool_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend thermostat_heat_deadband
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_therm_heat_db_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend thermostat_heat_overrun
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_therm_heat_or_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend thermostat_cool_deadband
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_therm_cool_db_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+- id: !extend thermostat_cool_overrun
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_therm_cool_or_val
+          text:
+            format: "%.1f°C"
+            args: ['x']
+
+# ── Settings: Mengventielen min/max positie ──
+- id: !extend mixing_valve_zone1_min_position
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z1_min_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend mixing_valve_zone1_max_position
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z1_max_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend mixing_valve_zone2_min_position
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z2_min_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend mixing_valve_zone2_max_position
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_mv_z2_max_val
+          text:
+            format: "%.0f%%"
+            args: ['x']
+
+- id: !extend thermostat_off_delay
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_therm_off_delay_val
+          text:
+            format: "%.0f min"
+            args: ['x']
+
+# ── Geavanceerd: Ventilator ──
+- id: !extend outdoor_unit_fan_param_3306
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_heat_max_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3304
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_heat_mild_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3301
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_heat_warm_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3303
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_heat_hz_low_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3305
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_heat_hz_mid_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3328
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_cool_max_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3326
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_cool_mild_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3323
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_cool_low_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3325
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_cool_hz_low_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']
+
+- id: !extend outdoor_unit_fan_param_3327
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: set_fan_cool_hz_mid_val
+          text:
+            format: "%.0f rpm"
+            args: ['x']

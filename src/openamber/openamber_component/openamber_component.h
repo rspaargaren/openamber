@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Open Amber - Itho Daalderop Amber heat pump controller for ESPHome
  *
  * Copyright (C) 2025 Jordi Epema
@@ -21,21 +21,29 @@
 
 #include "esphome/core/component.h"
 
+
 // Forward declarations
 class DHWController;
 class HeatCoolController;
 class PumpController;
 class CompressorController;
+class DeaerationRoutine;
+class MixingValveActuator;
 enum ThreeWayValvePosition
 {
   HEATING_COOLING,
   DHW,
 };
 enum State {
+  UNKNOWN,
+  WAIT_MODBUS_CONNECTION,
+  WAIT_INITIALIZATION,
   INITIALIZING,
-  SWITCHING,
   DHW_HEAT,
   HEAT_COOL,
+  MAINTENANCE,
+  WAIT_FOR_STATE_SWITCH,
+  WAIT_THREE_WAY_VALVE,
 };
 namespace esphome {
 namespace openamber {
@@ -49,14 +57,30 @@ private:
   HeatCoolController* heat_cool_controller_;
   PumpController *pump_controller_;
   CompressorController *compressor_controller_;
-  uint32_t last_three_way_valve_switch_ms_ = 0;
-  State state_ = State::INITIALIZING;
+  DeaerationRoutine *deaeration_routine_;
+  MixingValveActuator *mixing_valve_zone1_;
+  MixingValveActuator *mixing_valve_zone2_;
+  State deferred_machine_state_;
+  uint32_t defer_state_change_until_ms_;
+  uint32_t modbus_disconnected_since_ms_ = 0;
+  bool modbus_disconnected_error_occurred_ = false;
+  State state_ = State::WAIT_MODBUS_CONNECTION;
+  ThreeWayValvePosition valve_target_position_ = ThreeWayValvePosition::HEATING_COOLING;
+  State valve_target_state_ = State::UNKNOWN;
+  uint32_t valve_switch_started_ms_ = 0;
   void SetThreeWayValve(ThreeWayValvePosition position);
   ThreeWayValvePosition GetThreeWayValvePosition();
   ThreeWayValvePosition GetDesiredThreeWayValvePosition();
-  void ApplyWorkingMode();
+  void SwitchThreeWayValveAndWait(ThreeWayValvePosition position, State next_state);
+  bool IsThreeWayValveFeedbackConfirmed(ThreeWayValvePosition position);
+
   void SetNextState(State state);
+  void LeaveStateAndSetNextStateAfterWaitTime(State new_state, uint32_t defer_ms);
   const char* StateToString(State state);
+  void WriteHeatingFrequencyTable();
+  void WriteCoolingFrequencyTable();
+  void CheckModbusConnectionTimeout();
+  void StopControllers();
 public:
   OpenAmberComponent();
   ~OpenAmberComponent();
@@ -66,7 +90,26 @@ public:
   void update() override;
   
   void write_heat_pid_value(float value);
+  void write_cool_pid_value(float value);
+  void write_pump_p0_pid_value(float value);
+  void write_mixing_valve_zone1_pid_value(float value);
+  void write_mixing_valve_zone2_pid_value(float value);
+  float get_mixing_valve_zone1_position() const;
+  float get_mixing_valve_zone2_position() const;
   void reset_pump_interval();
+  bool is_maintenance_state() const;
+  void start_deaeration_routine(bool extended);
+  void stop_deaeration_routine();
+  bool is_deaeration_running() const;
+  bool is_deaeration_extended() const;
+  int get_deaeration_state() const;
+  bool is_deaeration_dhw_circuit() const;
+  int get_deaeration_current_cycle() const;
+  int get_deaeration_cycle_count() const;
+  int get_deaeration_progress_percent() const;
+  uint32_t get_deaeration_remaining_seconds() const;
+  std::string get_deaeration_phase_text() const;
+  uint32_t get_deaeration_duration_seconds(bool extended) const;
 };
 
 }  // namespace openamber

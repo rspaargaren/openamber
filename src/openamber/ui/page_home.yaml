@@ -1,462 +1,933 @@
 obj:
   id: page_home
-  width: 1024
-  height: 460
+  width: 100%
+  height: 76%
   x: 0
   y: 70
   bg_opa: 0%
   border_opa: 0%
   scrollbar_mode: "OFF"
   scrollable: false
+  pad_left: 24
+  pad_right: 24
+  pad_top: 10
+  pad_bottom: 10
+  layout:
+    type: GRID
+    grid_rows: [ FR(1) ]
+    grid_columns: [ FR(13), FR(6) ]
+    pad_column: 16
 
   widgets:
-      - obj:
-          id: water_card
-          width: 560
-          height: 430
-          x: 24
-          y: 10
-          bg_color: 0xF5F8FC
-          bg_opa: 100%
-          radius: 18
-          pad_left: 24
-          pad_right: 24
-          pad_top: 20
-          pad_bottom: 20
-          border_width: 0
-          border_opa: 0%
-          shadow_width: 10
-          shadow_spread: 0
-          shadow_color: 0x000000
-          shadow_opa: 20%
-          scrollbar_mode: "OFF"
-          scrollable: false
-          widgets:
-            - label:
-                id: water_title
-                text: "Water circuit"
-                text_color: 0x1F2933
-                text_font: font_mdi_24
-                align: TOP_LEFT
-                y: 0
+    - obj:
+        id: home_left_wrapper
+        width: 100%
+        height: 100%
+        grid_cell_row_pos: 0
+        grid_cell_column_pos: 0
+        grid_cell_x_align: STRETCH
+        grid_cell_y_align: STRETCH
+        bg_opa: 0%
+        border_opa: 0%
+        pad_all: 0
+        scrollbar_mode: "OFF"
+        scrollable: false
+        layout:
+          type: FLEX
+          flex_flow: ROW
+          pad_column: 16
+        widgets:
+          - obj:
+              id: water_card
+              flex_grow: 1
+              height: 100%
+              bg_color: 0xF5F8FC
+              bg_opa: 100%
+              radius: 18
+              pad_left: 24
+              pad_right: 24
+              pad_top: 20
+              pad_bottom: 20
+              border_width: 0
+              border_opa: 0%
+              shadow_width: 10
+              shadow_spread: 0
+              shadow_color: 0x000000
+              shadow_opa: 20%
+              scrollbar_mode: "OFF"
+              scrollable: false
+              widgets:
+                - obj:
+                    id: water_circuit_header_group
+                    align: TOP_LEFT
+                    x: -4
+                    y: 0
+                    width: SIZE_CONTENT
+                    height: SIZE_CONTENT
+                    pad_all: 0
+                    bg_opa: 0%
+                    border_opa: 0%
+                    layout:
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_cross: CENTER
+                      pad_column: 8
+                    widgets:
+                      - label:
+                          id: water_circuit_header_icon
+                          text: "\U000F058C"
+                          text_color: 0x0072CE
+                          text_font: font_mdi_30
+                          y: 2
+                      - label:
+                          id: water_circuit_header_text
+                          text: "Watercircuit"
+                          text_color: 0x1F2933
+                          text_font: font_mdi_24
 
-            - obj:
-                id: water_mode_chip
-                align: TOP_RIGHT
-                x: -4
-                y: 0
-                width: SIZE_CONTENT
-                height: SIZE_CONTENT
-                pad_left: 10
-                pad_right: 12
-                pad_top: 4
-                pad_bottom: 4
-                bg_color: 0xF97316
-                bg_opa: 100%
-                radius: 16
-                border_width: 0
-                border_opa: 0%
+                - obj:
+                    id: water_mode_chip
+                    align: TOP_RIGHT
+                    x: -4
+                    y: 0
+                    width: SIZE_CONTENT
+                    height: SIZE_CONTENT
+                    pad_left: 10
+                    pad_right: 12
+                    pad_top: 4
+                    pad_bottom: 4
+                    bg_color: 0xF97316
+                    bg_opa: 100%
+                    radius: 16
+                    border_width: 0
+                    border_opa: 0%
 
-                layout:
-                  type: FLEX
-                  flex_flow: ROW
-                  flex_align_cross: CENTER
-                  pad_column: 6
-                widgets:
-                  - label:
-                      id: water_mode_icon
-                      text: "\U000F0238"
-                      text_color: 0xFFFFFF
-                      text_font: font_mdi_24
-                  - label:
-                      id: water_mode_text
-                      text: "Verwarmen"
-                      text_color: 0xFFFFFF
-                      text_font: font_mdi_24
+                    layout:
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_cross: CENTER
+                      pad_column: 6
+                    widgets:
+                      - label:
+                          id: water_mode_icon
+                          text: "\U000F0238"
+                          text_color: 0xFFFFFF
+                          text_font: font_mdi_24
+                      - label:
+                          id: water_mode_text
+                          text: "Verwarmen"
+                          text_color: 0xFFFFFF
+                          text_font: font_mdi_24
+                      - label:
+                          id: water_mode_efficiency_text
+                          text: ""
+                          text_color: 0xFFFFFF
+                          text_font: font_text_20
+                          hidden: true
 
-            - image:
-                id: water_diagram_img
-                src: img_water_circuit
-                align: CENTER
-                y: -35
+                - image:
+                    id: water_diagram_img
+                    src: img_water_circuit
+                    align: CENTER
+                    y: -48
 
-            - obj:
-                id: water_aanvoer_group
-                align: LEFT_MID
-                x: 80
-                y: 5
-                bg_opa: 0%
-                border_opa: 0%
-                pad_all: 0
-                layout:
-                  type: FLEX
-                  flex_flow: COLUMN
-                  flex_align_cross: START
-                  pad_row: 2
-                widgets:
-                  - label:
-                      id: water_aanvoer_label
-                      text: "Aanvoer"
-                      text_color: 0x1F2933
-                      text_font: font_mdi_24
-                  - label:
-                      id: water_aanvoer_value
-                      text: "32,5°C"
-                      text_color: 0x1F2933
-                      text_font: font_value_big
+                - obj:
+                    id: water_aanvoer_group
+                    align: LEFT_MID
+                    x: 8
+                    y: -52
+                    width: SIZE_CONTENT
+                    height: SIZE_CONTENT
+                    bg_color: 0xFFFFFF
+                    bg_opa: 100%
+                    radius: 12
+                    border_width: 1
+                    border_color: 0xD7E0EA
+                    border_opa: 100%
+                    pad_left: 7
+                    pad_right: 7
+                    pad_top: 6
+                    pad_bottom: 6
+                    layout:
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_cross: CENTER
+                      pad_column: 8
+                    widgets:
+                      - obj:
+                          id: water_aanvoer_icon_ring
+                          width: 40
+                          height: 40
+                          bg_color: 0xFFFFFF
+                          bg_opa: 100%
+                          radius: 20
+                          border_width: 2
+                          border_color: 0xE84A2A
+                          border_opa: 100%
+                          pad_left: 0
+                          pad_right: 0
+                          pad_top: 0
+                          pad_bottom: 0
+                          widgets:
+                            - label:
+                                id: water_aanvoer_icon
+                                text: "\U000F050F"
+                                text_color: 0xE84A2A
+                                text_font: font_mdi_24
+                                align: CENTER
+                      - obj:
+                          id: water_aanvoer_text_col
+                          width: SIZE_CONTENT
+                          height: SIZE_CONTENT
+                          bg_opa: 0%
+                          border_opa: 0%
+                          pad_all: 0
+                          layout:
+                            type: FLEX
+                            flex_flow: COLUMN
+                            flex_align_cross: START
+                            pad_row: 4
+                          widgets:
+                            - label:
+                                id: water_aanvoer_label
+                                text: "Aanvoer"
+                                text_color: 0x1F2933
+                                text_font: font_text_20
+                            - label:
+                                id: water_aanvoer_value
+                                text: "-°C"
+                                text_color: 0xE84A2A
+                                text_font: font_text_24
 
-            - obj:
-                id: water_retour_group
-                align: RIGHT_MID
-                x: -25
-                y: 5
-                bg_opa: 0%
-                border_opa: 0%
-                pad_all: 0
-                layout:
-                  type: FLEX
-                  flex_flow: COLUMN
-                  flex_align_cross: END
-                  pad_row: 2
-                widgets:
-                  - label:
-                      id: water_retour_label
-                      text: "Retour"
-                      text_color: 0x1F2933
-                      text_font: font_mdi_24
-                  - label:
-                      id: water_retour_value
-                      text: "27,8°C"
-                      text_color: 0x1F2933
-                      text_font: font_value_big
+                - obj:
+                    id: water_retour_group
+                    align: RIGHT_MID
+                    x: -8
+                    y: -52
+                    width: SIZE_CONTENT
+                    height: SIZE_CONTENT
+                    bg_color: 0xFFFFFF
+                    bg_opa: 100%
+                    radius: 12
+                    border_width: 1
+                    border_color: 0xD7E0EA
+                    border_opa: 100%
+                    pad_left: 7
+                    pad_right: 7
+                    pad_top: 6
+                    pad_bottom: 6
+                    layout:
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_cross: CENTER
+                      flex_align_main: SPACE_BETWEEN
+                      pad_column: 8
+                    widgets:
+                      - obj:
+                          id: water_retour_text_col
+                          width: SIZE_CONTENT
+                          height: SIZE_CONTENT
+                          bg_opa: 0%
+                          border_opa: 0%
+                          pad_all: 0
+                          layout:
+                            type: FLEX
+                            flex_flow: COLUMN
+                            flex_align_cross: START
+                            pad_row: 4
+                          widgets:
+                            - label:
+                                id: water_retour_label
+                                text: "Retour"
+                                text_color: 0x1F2933
+                                text_font: font_text_20
+                            - label:
+                                id: water_retour_value
+                                text: "-°C"
+                                text_color: 0x1B61B8
+                                text_font: font_text_24
+                      - obj:
+                          id: water_retour_icon_ring
+                          width: 40
+                          height: 40
+                          bg_color: 0xFFFFFF
+                          bg_opa: 100%
+                          radius: 20
+                          border_width: 2
+                          border_color: 0x1B61B8
+                          border_opa: 100%
+                          pad_left: 0
+                          pad_right: 0
+                          pad_top: 0
+                          pad_bottom: 0
+                          widgets:
+                            - label:
+                                id: water_retour_icon
+                                text: "\U000F050F"
+                                text_color: 0x1B61B8
+                                text_font: font_mdi_24
+                                align: CENTER
 
-            - obj:
-                id: water_delta_group
-                align: CENTER
-                x: 40
-                y: 50
-                bg_opa: 0%
-                border_opa: 0%
-                pad_all: 0
-                layout:
-                  type: FLEX
-                  flex_flow: COLUMN
-                  flex_align_cross: CENTER
-                  pad_row: 4
-                widgets:
-                  - label:
-                      id: water_delta_label
-                      text: "\U000F01C2T"
-                      text_color: 0x1F2933
-                      text_font: font_value_big
-                  - label:
-                      id: water_delta_value
-                      text: "4,7°C"
-                      text_color: 0x1F2933
-                      text_font: font_value_big
+                - obj:
+                    id: water_delta_group
+                    align: CENTER
+                    x: 20
+                    y: 52
+                    bg_opa: 0%
+                    border_opa: 0%
+                    pad_all: 0
+                    layout:
+                      type: FLEX
+                      flex_flow: COLUMN
+                      flex_align_cross: CENTER
+                      pad_row: 2
+                    widgets:
+                      - label:
+                          id: water_delta_label
+                          text: "\U000F01C2 T"
+                          text_color: 0x1F2933
+                          text_font: font_mdi_24
+                      - label:
+                          id: water_delta_value
+                          text: "-°C"
+                          text_color: 0x1F2933
+                          text_font: font_text_24
 
-      - obj:
-          id: tile_fan
-          width: 180
-          height: 130
-          x: 608
-          y: 20
-          bg_color: 0xF5F8FC
-          bg_opa: 100%
-          radius: 16
-          pad_left: 8
-          pad_right: 8
-          pad_top: 8
-          pad_bottom: 8
-          border_width: 0
-          border_opa: 0%
+                - obj:
+                    id: water_tc_panel
+                    align: BOTTOM_MID
+                    x: 0
+                    y: -14
+                    width: 640
+                    height: SIZE_CONTENT
+                    scrollbar_mode: "OFF"
+                    scrollable: false
+                    bg_color: 0xFFFFFF
+                    bg_opa: 100%
+                    radius: 14
+                    border_width: 1
+                    border_color: 0xD7E0EA
+                    border_opa: 100%
+                    pad_left: 14
+                    pad_right: 14
+                    pad_top: 10
+                    pad_bottom: 10
+                    layout:
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: CENTER
+                      flex_align_cross: CENTER
+                      pad_column: 6
+                    widgets:
+                      - obj:
+                          id: water_tc_current_col
+                          width: 190
+                          height: SIZE_CONTENT
+                          scrollbar_mode: "OFF"
+                          scrollable: false
+                          bg_opa: 0%
+                          border_opa: 0%
+                          pad_left: 32
+                          pad_right: 0
+                          pad_top: 0
+                          pad_bottom: 0
+                          layout:
+                            type: FLEX
+                            flex_flow: ROW
+                            flex_align_cross: CENTER
+                            pad_column: 10
+                          widgets:
+                            - obj:
+                                id: water_tc_current_icon_ring
+                                width: 34
+                                height: 34
+                                bg_color: 0xFFFFFF
+                                bg_opa: 100%
+                                radius: 17
+                                border_width: 2
+                                border_color: 0x5C4CC2
+                                border_opa: 100%
+                                pad_all: 0
+                                widgets:
+                                  - label:
+                                      id: water_tc_current_icon
+                                      text: "\U000F050F"
+                                      text_color: 0x5C4CC2
+                                      text_font: font_mdi_24
+                                      align: CENTER
+                            - obj:
+                                id: water_tc_current_text_col
+                                width: SIZE_CONTENT
+                                height: SIZE_CONTENT
+                                bg_opa: 0%
+                                border_opa: 0%
+                                pad_all: 0
+                                layout:
+                                  type: FLEX
+                                  flex_flow: COLUMN
+                                  flex_align_cross: START
+                                  pad_row: 2
+                                widgets:
+                                  - label:
+                                      id: water_tc_current_label
+                                      text: "Afgifte (Tc)"
+                                      text_color: 0x1F2933
+                                      text_font: font_text_20
+                                  - label:
+                                      id: water_tc_value
+                                      text: "-°C"
+                                      text_color: 0x5C4CC2
+                                      text_font: font_text_24
+                      - obj:
+                          id: water_tc_divider
+                          width: 1
+                          height: 54
+                          bg_color: 0xD7E0EA
+                          bg_opa: 100%
+                          border_opa: 0%
+                      - obj:
+                          id: water_tc_target_col
+                          width: 150
+                          height: SIZE_CONTENT
+                          scrollbar_mode: "OFF"
+                          scrollable: false
+                          bg_opa: 0%
+                          border_opa: 0%
+                          pad_all: 0
+                          layout:
+                            type: FLEX
+                            flex_flow: ROW
+                            flex_align_cross: CENTER
+                            pad_column: 8
+                          widgets:
+                            - obj:
+                                id: water_tc_target_icon_ring
+                                width: 34
+                                height: 34
+                                bg_color: 0xFFFFFF
+                                bg_opa: 100%
+                                radius: 17
+                                border_width: 2
+                                border_color: 0x5C4CC2
+                                border_opa: 100%
+                                pad_all: 0
+                                widgets:
+                                  - label:
+                                      id: water_tc_target_icon
+                                      text: "\U000F0493"
+                                      text_color: 0x5C4CC2
+                                      text_font: font_mdi_24
+                                      align: CENTER
+                            - obj:
+                                id: water_tc_target_text_col
+                                width: SIZE_CONTENT
+                                height: SIZE_CONTENT
+                                bg_opa: 0%
+                                border_opa: 0%
+                                pad_all: 0
+                                layout:
+                                  type: FLEX
+                                  flex_flow: COLUMN
+                                  flex_align_cross: START
+                                  pad_row: 2
+                                widgets:
+                                  - label:
+                                      id: water_tc_target_label
+                                      text: "Doel"
+                                      text_color: 0x1F2933
+                                      text_font: font_text_20
+                                  - label:
+                                      id: water_aanvoer_target_value
+                                      text: "-°C"
+                                      text_color: 0x5C4CC2
+                                      text_font: font_text_24
+                      - obj:
+                          id: water_tc_divider_2
+                          width: 1
+                          height: 54
+                          bg_color: 0xD7E0EA
+                          bg_opa: 100%
+                          border_opa: 0%
+                      - obj:
+                          id: water_tc_outdoor_col
+                          width: 170
+                          height: SIZE_CONTENT
+                          scrollbar_mode: "OFF"
+                          scrollable: false
+                          bg_opa: 0%
+                          border_opa: 0%
+                          pad_all: 0
+                          layout:
+                            type: FLEX
+                            flex_flow: ROW
+                            flex_align_cross: CENTER
+                            pad_column: 10
+                          widgets:
+                            - obj:
+                                id: water_tc_outdoor_icon_ring
+                                width: 34
+                                height: 34
+                                bg_color: 0xFFFFFF
+                                bg_opa: 100%
+                                radius: 17
+                                border_width: 2
+                                border_color: 0x0072CE
+                                border_opa: 100%
+                                pad_all: 0
+                                widgets:
+                                  - label:
+                                      id: water_tc_outdoor_icon
+                                      text: "\U000F050F"
+                                      text_color: 0x0072CE
+                                      text_font: font_mdi_24
+                                      align: CENTER
+                            - obj:
+                                id: water_tc_outdoor_text_col
+                                width: SIZE_CONTENT
+                                height: SIZE_CONTENT
+                                bg_opa: 0%
+                                border_opa: 0%
+                                pad_all: 0
+                                layout:
+                                  type: FLEX
+                                  flex_flow: COLUMN
+                                  flex_align_cross: START
+                                  pad_row: 2
+                                widgets:
+                                  - label:
+                                      id: water_tc_outdoor_label
+                                      text: "Buiten"
+                                      text_color: 0x1F2933
+                                      text_font: font_text_20
+                                  - label:
+                                      id: header_outdoor
+                                      text: "-.-°C"
+                                      text_color: 0x0072CE
+                                      text_font: font_text_24
 
-          widgets:
-            - label:
-                id: tile_fan_icon
-                text: "\U000F0210"
-                text_color: 0x0072CE
-                text_font: font_mdi_24
-                align: TOP_MID
-                y: 4
+          # ── DHW Tank Card (greyed out when DHW not enabled) ──
+          - obj:
+              id: dhw_tank_card
+              width: 160
+              height: 100%
+              opa: 40%
+              bg_color: 0xF5F8FC
+              bg_opa: 100%
+              radius: 18
+              pad_left: 12
+              pad_right: 12
+              pad_top: 16
+              pad_bottom: 12
+              border_width: 0
+              border_opa: 0%
+              shadow_width: 10
+              shadow_spread: 0
+              shadow_color: 0x000000
+              shadow_opa: 20%
+              scrollbar_mode: "OFF"
+              scrollable: false
+              widgets:
+                # Title
+                - label:
+                    id: dhw_tank_title
+                    text: "Tapwater"
+                    text_color: 0x1F2933
+                    text_font: font_mdi_24
+                    align: TOP_MID
+                    y: 0
 
-            - label:
-                id: tile_fan_title
-                text: "Fan"
-                text_color: 0x1F2933
-                text_font: font_mdi_24
-                align: CENTER
-                y: -4
+                # Tank visualization area
+                - obj:
+                    id: dhw_tank_area
+                    align: CENTER
+                    y: 0
+                    width: 100%
+                    height: 280
+                    bg_opa: 0%
+                    border_opa: 0%
+                    pad_all: 0
+                    scrollbar_mode: "OFF"
+                    scrollable: false
+                    widgets:
+                      # Flow arrow up (left side, visible when pump on)
+                      - label:
+                          id: dhw_flow_arrow_up
+                          text: "\U000F005D"
+                          text_color: 0x22D3EE
+                          text_font: font_mdi_24
+                          align: LEFT_MID
+                          x: 0
+                          y: -30
+                          hidden: true
 
-            - obj:
-                id: tile_fan_chip
-                align: BOTTOM_MID
-                width: SIZE_CONTENT
-                height: SIZE_CONTENT
-                pad_left: 16
-                pad_right: 16
-                pad_top: 4
-                pad_bottom: 4
-                text_color: 0x000000
-                bg_opa: TRANSP
-                radius: 16
-                border_width: 0
-                widgets:
-                  - label:
-                      id: tile_fan_value
-                      text: "65%"
+                      # Flow arrow down (left side, visible when pump on)
+                      - label:
+                          id: dhw_flow_arrow_down
+                          text: "\U000F0045"
+                          text_color: 0x22D3EE
+                          text_font: font_mdi_24
+                          align: LEFT_MID
+                          x: 0
+                          y: 30
+                          hidden: true
 
-      - obj:
-          id: tile_pump
-          width: 180
-          height: 130
-          x: 812
-          y: 20
-          bg_color: 0xF5F8FC
-          bg_opa: 100%
-          radius: 16
-          pad_left: 8
-          pad_right: 8
-          pad_top: 8
-          pad_bottom: 8
-          border_width: 0
-          border_opa: 0%
+                      # Tank image with text overlay
+                      - obj:
+                          id: dhw_tank_body
+                          align: CENTER
+                          width: 130
+                          height: 260
+                          bg_opa: 0%
+                          border_opa: 0%
+                          scrollbar_mode: "OFF"
+                          scrollable: false
+                          widgets:
+                            # Tank background image
+                            - image:
+                                id: dhw_tank_img
+                                src: img_dhw_tank
+                                align: CENTER
 
-          widgets:
-            - label:
-                id: tile_pump_icon
-                text: "\U000F058F"
-                text_color: 0x0072CE
-                text_font: font_mdi_24
-                align: TOP_MID
-                y: 4
+                            # Current temperature (large, centered in upper half)
+                            - label:
+                                id: dhw_tank_temp_value
+                                text: "-°C"
+                                text_color: 0x1F2933
+                                text_font: font_value_big
+                                align: CENTER
+                                y: -20
 
-            - label:
-                id: tile_pump_title
-                text: "Pomp"
-                text_color: 0x1F2933
-                text_font: font_mdi_24
-                align: CENTER
-                y: -4
+                            # "Doel" caption
+                            - label:
+                                id: dhw_tank_target_caption
+                                text: "Doel"
+                                text_color: 0x475569
+                                text_font: font_mdi_24
+                                align: CENTER
+                                y: 16
 
-            - obj:
-                id: tile_pump_chip
-                align: BOTTOM_MID
-                width: SIZE_CONTENT
-                height: SIZE_CONTENT
-                pad_left: 16
-                pad_right: 16
-                pad_top: 4
-                pad_bottom: 4
-                text_color: 0x000000
-                bg_opa: TRANSP
-                radius: 16
-                border_width: 0
-                widgets:
-                  - label:
-                      id: tile_pump_state
-                      text: "AAN"                      
+                            # Target temperature
+                            - label:
+                                id: dhw_tank_target_value
+                                text: "-°C"
+                                text_color: 0x1F2933
+                                text_font: font_mdi_24
+                                align: CENTER
+                                y: 40
 
-      - obj:
-          id: tile_defrost
-          width: 180
-          height: 130
-          x: 608
-          y: 166
-          bg_color: 0xF5F8FC
-          bg_opa: 100%
-          radius: 16
-          pad_left: 8
-          pad_right: 8
-          pad_top: 8
-          pad_bottom: 8
-          border_width: 0
-          border_opa: 0%
+                      # Circulation spinner (visible when pump on)
+                      - spinner:
+                          id: dhw_circulation_spinner
+                          align: RIGHT_MID
+                          x: -2
+                          width: 36
+                          height: 36
+                          spin_time: 2s
+                          arc_length: 90deg
+                          arc_width: 3
+                          arc_color: 0xBFDBFE
+                          indicator:
+                            arc_width: 3
+                            arc_color: 0x22D3EE
+                          hidden: true
 
-          widgets:
-            - label:
-                id: tile_defrost_icon
-                text: "\U000F12CB"
-                text_color: 0x0072CE
-                text_font: font_mdi_24
-                align: TOP_MID
-                y: 4
+                # Pump status block at bottom (icon / label / state)
+                - obj:
+                    id: dhw_pump_status_row
+                    align: BOTTOM_MID
+                    width: SIZE_CONTENT
+                    height: SIZE_CONTENT
+                    bg_opa: 0%
+                    border_opa: 0%
+                    pad_top: 0
+                    pad_bottom: 0
+                    pad_left: 0
+                    pad_right: 0
+                    layout:
+                      type: FLEX
+                      flex_flow: COLUMN
+                      flex_align_main: CENTER
+                      flex_align_cross: CENTER
+                      pad_row: 2
+                    widgets:
+                      - label:
+                          id: dhw_pump_icon
+                          text: "\U000F058F"
+                          text_color: 0x0072CE
+                          text_font: font_mdi_24
+                      - label:
+                          id: dhw_pump_title
+                          text: "Pomp"
+                          text_color: 0x1F2933
+                          text_font: font_text_20
+                      - label:
+                          id: dhw_pump_state_label
+                          text: "UIT"
+                          text_color: 0x1F2933
+                          text_font: font_text_20
 
-            - label:
-                id: tile_defrost_title
-                text: "Defrost"
-                text_color: 0x1F2933
-                text_font: font_mdi_24
-                align: CENTER
-                y: -4
+    - obj:
+        id: home_tiles_grid
+        width: 100%
+        height: 100%
+        grid_cell_row_pos: 0
+        grid_cell_column_pos: 1
+        grid_cell_x_align: STRETCH
+        grid_cell_y_align: STRETCH
+        bg_opa: 0%
+        border_opa: 0%
+        pad_all: 0
+        layout:
+          type: GRID
+          grid_rows: [ FR(1), FR(1), FR(1) ]
+          grid_columns: [ FR(1), FR(1) ]
+          pad_row: 14
+          pad_column: 14
 
-            - obj:
-                id: tile_defrost_chip
-                align: BOTTOM_MID
-                width: SIZE_CONTENT
-                height: SIZE_CONTENT
-                pad_left: 16
-                pad_right: 16
-                pad_top: 4
-                pad_bottom: 4
-                text_color: 0x000000
-                bg_opa: TRANSP
-                radius: 16
-                border_width: 0
-                widgets:
-                  - label:
-                      id: tile_defrost_state
-                      text: "UIT"
+        widgets:
+          - obj:
+              id: tile_fan
+              width: 100%
+              height: 100%
+              grid_cell_row_pos: 0
+              grid_cell_column_pos: 0
+              grid_cell_x_align: STRETCH
+              grid_cell_y_align: STRETCH
+              bg_color: 0x919191
+              bg_opa: 100%
+              radius: 16
+              pad_left: 8
+              pad_right: 8
+              pad_top: 8
+              pad_bottom: 8
+              border_width: 0
+              border_opa: 0%
 
-      - obj:
-          id: tile_compressor
-          width: 180
-          height: 130
-          x: 812
-          y: 166
-          bg_color: 0xF5F8FC
-          bg_opa: 100%
-          radius: 16
-          pad_left: 8
-          pad_right: 8
-          pad_top: 8
-          pad_bottom: 8
-          border_width: 0
-          border_opa: 0%
+              widgets:
+                - label:
+                    id: tile_fan_icon
+                    text: "\U000F0210"
+                    text_color: 0x0072CE
+                    text_font: font_mdi_24
+                    align: TOP_MID
+                    y: 4
 
-          widgets:
-            - label:
-                id: tile_compressor_icon
-                text: "\U000F1A44"
-                text_color: 0x0072CE
-                text_font: font_mdi_24
-                align: TOP_MID
-                y: 4
+                - label:
+                    id: tile_fan_title
+                    text: "Fan"
+                    text_color: 0x1F2933
+                    text_font: font_text_20
+                    align: CENTER
+                    y: -4
 
-            - label:
-                id: tile_compressor_title
-                text: "Compressor"
-                text_color: 0x1F2933
-                text_font: font_mdi_24
-                align: CENTER
-                y: -4
+                - label:
+                    id: tile_fan_value
+                    text: "0 RPM"
+                    align: BOTTOM_MID
+                    y: -4
 
-            - obj:
-                id: tile_compressor_chip
-                align: BOTTOM_MID
-                width: SIZE_CONTENT
-                height: SIZE_CONTENT
-                pad_left: 16
-                pad_right: 16
-                pad_top: 4
-                pad_bottom: 4
-                text_color: 0x000000
-                bg_opa: TRANSP
-                radius: 16
-                border_width: 0
-                widgets:
-                  - label:
-                      id: tile_compressor_value
-                      text: "38 Hz"
+          - obj:
+              id: tile_pump
+              width: 100%
+              height: 100%
+              grid_cell_row_pos: 0
+              grid_cell_column_pos: 1
+              grid_cell_x_align: STRETCH
+              grid_cell_y_align: STRETCH
+              bg_color: 0x919191
+              bg_opa: 100%
+              radius: 16
+              pad_left: 8
+              pad_right: 8
+              pad_top: 8
+              pad_bottom: 8
+              border_width: 0
+              border_opa: 0%
 
-      - obj:
-          id: tile_backup_heater
-          width: 180
-          height: 130
-          x: 608
-          y: 312
-          bg_color: 0xF5F8FC
-          bg_opa: 100%
-          radius: 16
-          pad_left: 8
-          pad_right: 8
-          pad_top: 8
-          pad_bottom: 8
-          border_width: 0
-          border_opa: 0%
+              widgets:
+                - label:
+                    id: tile_pump_icon
+                    text: "\U000F058F"
+                    text_color: 0x0072CE
+                    text_font: font_mdi_24
+                    align: TOP_MID
+                    y: 4
 
-          widgets:
-            - label:
-                id: tile_backup_icon
-                text: "\U000F0238"
-                text_color: 0x0072CE
-                text_font: font_mdi_24
-                align: TOP_MID
-                y: 4
+                - label:
+                    id: tile_pump_title
+                    text: "Pomp"
+                    text_color: 0x1F2933
+                    text_font: font_text_20
+                    align: CENTER
+                    y: -4
 
-            - label:
-                id: tile_backup_title
-                text: "Backup heater"
-                text_color: 0x1F2933
-                text_font: font_mdi_24
-                align: CENTER
-                y: -10
+                - label:
+                    id: tile_pump_state
+                    text: "UIT"
+                    align: BOTTOM_MID
+                    y: -2
 
-            - obj:
-                id: tile_backup_chip
-                align: BOTTOM_MID
-                width: SIZE_CONTENT
-                height: SIZE_CONTENT
-                pad_left: 16
-                pad_right: 16
-                pad_top: 4
-                pad_bottom: 4
-                text_color: 0x000000
-                bg_opa: TRANSP
-                radius: 16
-                border_width: 0
-                widgets:
-                  - label:
-                      id: tile_backup_state
-                      text: "AAN"
+          - obj:
+              id: tile_defrost
+              width: 100%
+              height: 100%
+              grid_cell_row_pos: 1
+              grid_cell_column_pos: 0
+              grid_cell_x_align: STRETCH
+              grid_cell_y_align: STRETCH
+              bg_color: 0x919191
+              bg_opa: 100%
+              radius: 16
+              pad_left: 8
+              pad_right: 8
+              pad_top: 8
+              pad_bottom: 8
+              border_width: 0
+              border_opa: 0%
 
-      - obj:
-          id: tile_baseplate
-          width: 180
-          height: 130
-          x: 812
-          y: 312
-          bg_color: 0xF5F8FC
-          bg_opa: 100%
-          radius: 16
-          pad_left: 8
-          pad_right: 8
-          pad_top: 8
-          pad_bottom: 8
-          border_width: 0
-          border_opa: 0%
+              widgets:
+                - label:
+                    id: tile_defrost_icon
+                    text: "\U000F12CB"
+                    text_color: 0x0072CE
+                    text_font: font_mdi_24
+                    align: TOP_MID
+                    y: 4
 
-          widgets:
-            - label:
-                id: tile_baseplate_icon
-                text: "\U000F0438"
-                text_color: 0x0072CE
-                text_font: font_mdi_24
-                align: TOP_MID
-                y: 4
+                - label:
+                    id: tile_defrost_title
+                    text: "Defrost"
+                    text_color: 0x1F2933
+                    text_font: font_text_20
+                    align: CENTER
+                    y: -4
 
-            - label:
-                id: tile_baseplate_title
-                text: "Bodemplaat\nverwarming"
-                text_color: 0x1F2933
-                text_font: font_mdi_24
-                align: CENTER
-                y: -4
+                - label:
+                    id: tile_defrost_state
+                    text: "UIT"
+                    align: BOTTOM_MID
+                    y: -4
 
-            - obj:
-                id: tile_baseplate_chip
-                align: BOTTOM_MID
-                width: SIZE_CONTENT
-                height: SIZE_CONTENT
-                pad_left: 16
-                pad_right: 16
-                pad_top: 4
-                pad_bottom: 4
-                text_color: 0x000000
-                bg_opa: TRANSP
-                radius: 16
-                border_width: 0
-                widgets:
-                  - label:
-                      id: tile_baseplate_state
-                      text: "UIT"
+          - obj:
+              id: tile_compressor
+              width: 100%
+              height: 100%
+              grid_cell_row_pos: 1
+              grid_cell_column_pos: 1
+              grid_cell_x_align: STRETCH
+              grid_cell_y_align: STRETCH
+              bg_color: 0x919191
+              bg_opa: 100%
+              radius: 16
+              pad_left: 8
+              pad_right: 8
+              pad_top: 8
+              pad_bottom: 8
+              border_width: 0
+              border_opa: 0%
+
+              widgets:
+                - label:
+                    id: tile_compressor_icon
+                    text: "\U000F1A44"
+                    text_color: 0x0072CE
+                    text_font: font_mdi_24
+                    align: TOP_MID
+                    y: 4
+
+                - label:
+                    id: tile_compressor_title
+                    text: "Compressor"
+                    text_color: 0x1F2933
+                    text_font: font_text_20
+                    align: CENTER
+                    y: -4
+
+                - label:
+                    id: tile_compressor_value
+                    text: "0 Hz"
+                    align: BOTTOM_MID
+                    y: -4
+
+          - obj:
+              id: tile_backup_heater
+              width: 100%
+              height: 100%
+              grid_cell_row_pos: 2
+              grid_cell_column_pos: 0
+              grid_cell_x_align: STRETCH
+              grid_cell_y_align: STRETCH
+              bg_color: 0x919191
+              bg_opa: 100%
+              radius: 16
+              pad_left: 8
+              pad_right: 8
+              pad_top: 8
+              pad_bottom: 8
+              border_width: 0
+              border_opa: 0%
+
+              widgets:
+                - label:
+                    id: tile_backup_icon
+                    text: "\U000F0238"
+                    text_color: 0x0072CE
+                    text_font: font_mdi_24
+                    align: TOP_MID
+                    y: 4
+
+                - label:
+                    id: tile_backup_title
+                    text: "Backup heater"
+                    text_color: 0x1F2933
+                    text_font: font_text_20
+                    align: CENTER
+                    y: -10
+
+                - label:
+                    id: tile_backup_state
+                    text: "UIT"
+                    align: BOTTOM_MID
+                    y: -4
+
+          - obj:
+              id: tile_baseplate
+              width: 100%
+              height: 100%
+              grid_cell_row_pos: 2
+              grid_cell_column_pos: 1
+              grid_cell_x_align: STRETCH
+              grid_cell_y_align: STRETCH
+              bg_color: 0x919191
+              bg_opa: 100%
+              radius: 16
+              pad_left: 8
+              pad_right: 8
+              pad_top: 8
+              pad_bottom: 8
+              border_width: 0
+              border_opa: 0%
+
+              widgets:
+                - label:
+                    id: tile_baseplate_icon
+                    text: "\U000F0438"
+                    text_color: 0x0072CE
+                    text_font: font_mdi_24
+                    align: TOP_MID
+                    y: 4
+
+                - label:
+                    id: tile_baseplate_title
+                    text: "Bodemplaat\nverwarming"
+                    text_color: 0x1F2933
+                    text_font: font_text_20
+                    align: CENTER
+                    y: -4
+
+                - label:
+                    id: tile_baseplate_state
+                    text: "UIT"
+                    align: BOTTOM_MID
+                    y: -4
+

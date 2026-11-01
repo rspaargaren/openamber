@@ -1,0 +1,195 @@
+substitutions:
+  device_model: waveshare-p4-7-1024x600
+
+packages:
+ - !include openamber/core/openamber.yaml
+ - !include openamber/ui/display_globals.yaml
+ - !include openamber/ui/bindings/ui_bindings_package.yaml
+ - !include openamber/ui/ui_package.yaml
+ 
+network:
+  priority:
+    - ethernet
+    - wifi
+
+wifi:
+  use_psram: true
+
+ethernet:
+  type: W5500
+  clk_pin: 5
+  mosi_pin: 3
+  miso_pin: 2
+  cs_pin: 4
+  interrupt_pin: 29
+  reset_pin: 28
+
+esp32_ble_tracker:
+
+esp32:
+  board: esp32-p4-evboard
+  variant: esp32p4
+  flash_size: 32MB
+  cpu_frequency: 360MHz
+  framework:
+    sdkconfig_options:
+      CONFIG_SPIRAM_USE_MALLOC: y
+      CONFIG_NVS_ALLOCATE_CACHE_IN_SPIRAM: y
+      CONFIG_SPIRAM_RODATA: y
+      CONFIG_ESP_TASK_WDT_TIMEOUT_S: "60"
+      CONFIG_SPIRAM_XIP_FROM_PSRAM: "y"
+      CONFIG_ESP_HOSTED_MEMPOOL_PREFER_SPIRAM: y
+    advanced:
+      loop_task_stack_size: 10240
+      enable_idf_experimental_features: true
+
+esphome:
+  project:
+    version: dev
+  on_boot:
+    - priority: -100
+      then:
+        - lvgl.label.update:
+            id: header_title
+            text:
+              format: "OpenAmber %s"
+              args: ['ESPHOME_PROJECT_VERSION']
+        - script.execute: update_firmware_ui
+
+esp32_hosted:
+  variant: ESP32C6
+  reset_pin: GPIO54
+  cmd_pin: GPIO19
+  clk_pin: GPIO18
+  d0_pin: GPIO14
+  d1_pin: GPIO15
+  d2_pin: GPIO16
+  d3_pin: GPIO17
+  active_high: true
+  use_psram: true
+
+update:
+  - platform: esp32_hosted
+    name: ESP-Hosted Firmware
+    icon: mdi:chip
+    type: http
+    source: https://esphome.github.io/esp-hosted-firmware/manifest/esp32c6.json
+    update_interval: 6h
+
+uart:
+  rx_pin:
+    number: GPIO26
+    inverted: False
+  tx_pin:
+    number: GPIO27
+    inverted: False
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+esp_ldo:
+  - channel: 3
+    voltage: 2.5V
+
+display:
+  - platform: mipi_dsi
+    model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
+    id: my_display
+    reset_pin:
+      number: 33
+    update_interval: never
+    auto_clear_enabled: false
+    dimensions:
+      width: 1024
+      height: 600
+
+output:
+  - platform: ledc
+    id: backlight
+    pin: GPIO32
+    inverted: true
+    frequency: 1000Hz
+
+i2c:
+  - id: bus_a
+    sda: GPIO07
+    scl: GPIO08
+    frequency: 400kHz
+    scan: true
+
+touchscreen:
+  - platform: gt911
+    address: 0x5D
+    i2c_id: bus_a
+    reset_pin: GPIO23
+    update_interval: 50ms
+    id: my_touchscreen
+    transform:
+      swap_xy: false
+      mirror_x: true
+      mirror_y: true
+    on_release:
+      - if:
+          condition:
+            lambda: 'return id(is_idled);'
+          then:
+            - globals.set:
+                id: is_idled
+                value: 'false'
+            - output.set_level:
+                id: backlight
+                level: 100%
+
+api:
+  on_client_connected:
+    - lvgl.widget.update:
+        id: nav_status_ha_icon
+        text_color: 0x22C55E
+  on_client_disconnected:
+    - lvgl.widget.update:
+        id: nav_status_ha_icon
+        text_color: 0xEF4444
+
+
+
+
+sensor:
+  - platform: debug
+    psram:
+      name: "Free PSRAM"
+      id: system_psram_free
+      disabled_by_default: true
+
+# TODO: No default wiring determined yet for this sensor.
+  - platform: pulse_counter
+    pin:
+      number: GPIO6
+    name: Pulse meter
+    id: water_flow_rate
+    device_class: volume_flow_rate
+    unit_of_measurement: L/min
+    filters:
+      - lambda: return (x / id(flow_sensor_calibration).state);
+    total:
+      name: Total liters
+      unit_of_measurement: l
+      filters:
+        - lambda: return x / id(flow_sensor_calibration).state;
+        - delta: 1
+
+lvgl:
+  rotation: 180
+  byte_order: little_endian
+  on_idle:
+    - timeout: !lambda 'return id(display_screen_timeout_ms);'
+      then:
+        - globals.set:
+            id: is_idled
+            value: 'true'
+        - output.set_level:
+            id: backlight
+            level: 0%
+    - timeout: ${display_return_home_timeout}
+      then:
+        - script.execute: display_return_home

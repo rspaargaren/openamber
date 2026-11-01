@@ -19,7 +19,9 @@
 
 #include "constants.h"
 #include "dhw_controller.h"
+#include "mixing_valve_actuator.h"
 #include "heat_cool_controller.h"
+#include "deaeration_routine.h"
 
 using namespace esphome;
 
@@ -30,25 +32,36 @@ OpenAmberComponent::OpenAmberComponent()
 {
   pump_controller_ = new PumpController();
   compressor_controller_ = new CompressorController();
+  mixing_valve_zone1_ = new MixingValveActuator(
+    id(mixing_valve_zone1_output),
+    id(mixing_valve_zone1_min_position),
+    id(mixing_valve_zone1_max_position));
+  mixing_valve_zone2_ = new MixingValveActuator(
+    id(mixing_valve_zone2_output),
+    id(mixing_valve_zone2_min_position),
+    id(mixing_valve_zone2_max_position));
   dhw_controller_ = new DHWController(pump_controller_, compressor_controller_);
-  heat_cool_controller_ = new HeatCoolController(pump_controller_, compressor_controller_);
+  heat_cool_controller_ = new HeatCoolController(pump_controller_, compressor_controller_, mixing_valve_zone1_, mixing_valve_zone2_);
+  deaeration_routine_ = new DeaerationRoutine();
 }
 
 OpenAmberComponent::~OpenAmberComponent()
 {
   delete dhw_controller_;
   delete heat_cool_controller_;
+  delete deaeration_routine_;
   delete pump_controller_;
   delete compressor_controller_;
+  delete mixing_valve_zone1_;
+  delete mixing_valve_zone2_;
 }
 
 void OpenAmberComponent::setup()
 {
-  // Always set PID controller to HEAT mode.
-  auto call = id(pid_heat_cool_temperature_control).make_call();
-  call.set_mode("HEAT");
-  call.perform();
   ESP_LOGI("amber", "OpenAmberController initialized");
+  dhw_controller_->Init();
+  heat_cool_controller_->Init();
+  SetNextState(State::WAIT_MODBUS_CONNECTION);
 }
 
 void OpenAmberComponent::loop()
@@ -58,39 +71,119 @@ void OpenAmberComponent::loop()
 
 void OpenAmberComponent::update()
 {
-  if(!id(modbus_inside_online).state || !id(modbus_outside_online).state)
+  if ((state_ == State::HEAT_COOL || state_ == State::DHW_HEAT) && !id(pump_p0_relay_switch).state)
   {
+    id(error_inside_unit_failsafe).publish_state(true);
+    StopControllers();
+    ESP_LOGI("amber", "Inside unit pump relay switch unexpectedly turned off. Re-initializing controller.");
+    SetNextState(State::WAIT_MODBUS_CONNECTION);
     return;
   }
 
+  bool modbus_connected = id(modbus_inside_online).state && id(modbus_outside_online).state && id(outside_unit_eeprom_version).has_state();
   ThreeWayValvePosition current_valve_position = GetThreeWayValvePosition();
   ThreeWayValvePosition desired_valve_position = GetDesiredThreeWayValvePosition();
+  State desired_state = modbus_disconnected_error_occurred_ ? State::WAIT_MODBUS_CONNECTION : (desired_valve_position == ThreeWayValvePosition::DHW ? State::DHW_HEAT : State::HEAT_COOL);
+  bool maintenance_requested = id(service_mode_enabled).state;
 
-  dhw_controller_->CheckLegionellaCycle();
-
-  switch(state_)
+  if(!modbus_connected)
   {
+    CheckModbusConnectionTimeout();
+  }
+  else 
+  {
+    modbus_disconnected_since_ms_ = 0;
+  }
+
+  switch (state_)
+  {
+    case State::UNKNOWN:
+    {
+      break;
+    }
+
+    case State::WAIT_MODBUS_CONNECTION:
+    {
+      if(modbus_connected)
+      {
+        modbus_disconnected_error_occurred_ = false;
+        ESP_LOGI("amber", "Modbus connection established, transitioning to initialization.");
+        SetNextState(State::INITIALIZING);
+      }
+      break;
+    }
+
     case State::INITIALIZING:
     {
-      id(initialize_relay_switch).turn_on();
+      bool is_hp_s_model = id(outside_unit_eeprom_version).state == EEPROM_VERSION_HPS;
+      if (!is_hp_s_model)
+      {
+        id(initialize_relay_switch).turn_on();
+      }
       id(pump_p0_relay_switch).turn_on();
+      id(pump_p1_relay_switch).turn_off();
+      id(dhw_pump_relay_switch).turn_off();
+      id(three_way_valve_dhw_switch).turn_off();
+      id(three_way_valve_heat_cool_switch).turn_off();
+      id(backup_heater_stage_1).turn_off();
+      id(backup_heater_stage_2).turn_off();
+      // Close mixing valves during init.
+      id(mixing_valve_zone1_output).make_call().set_value(0).perform();
+      id(mixing_valve_zone2_output).make_call().set_value(0).perform();
+      auto working_mode_call = id(working_mode_switch).make_call();
+      working_mode_call.set_index(WORKING_MODE_STANDBY);
+      working_mode_call.perform();
+      compressor_controller_->Stop();
+      pump_controller_->Stop();
+      if(is_hp_s_model)
+      {
+        ESP_LOGI("amber", "Detected HPS unit based on EEPROM version, not writing heating frequency table.");
+      }
+      else if(id(default_compressor_frequencies_enabled).state)
+      {
+        ESP_LOGI("amber", "Default compressor frequencies setting enabled, not writing frequency tables.");
+      }
+      else
+      {
+        WriteHeatingFrequencyTable();
+        WriteCoolingFrequencyTable();
+      }
       ESP_LOGI("amber", "Initialized heat pump controller");
-      SetNextState(current_valve_position == ThreeWayValvePosition::DHW ? State::DHW_HEAT : State::HEAT_COOL);
+      LeaveStateAndSetNextStateAfterWaitTime(State::WAIT_INITIALIZATION, INITIALIZATION_DELAY_S * 1000UL);
+      break;
+    }
+
+    case State::WAIT_INITIALIZATION:
+    {
+      SwitchThreeWayValveAndWait(desired_valve_position, desired_state);
       break;
     }
 
     case State::HEAT_COOL:
     {
-      if(desired_valve_position == ThreeWayValvePosition::DHW && !heat_cool_controller_->IsRequestedToStop())
+      dhw_controller_->CheckLegionellaCycle();
+
+      if((desired_valve_position == ThreeWayValvePosition::DHW || maintenance_requested) && !heat_cool_controller_->IsRequestedToStop())
       {
         heat_cool_controller_->RequestToStop();
       }
 
-      if(heat_cool_controller_->IsInIdleState() && desired_valve_position != current_valve_position)
+      if(heat_cool_controller_->IsInIdleState())
       {
-        SetThreeWayValve(desired_valve_position);
-        SetNextState(State::SWITCHING);
-        break;
+        if(maintenance_requested)
+        {
+          auto working_mode_call = id(working_mode_switch).make_call();
+          working_mode_call.set_index(WORKING_MODE_MAINTENANCE);
+          working_mode_call.perform();
+          id(pump_p0_relay_switch).turn_off();
+          SetNextState(State::MAINTENANCE);          
+          break;
+        }
+        else if(desired_valve_position != current_valve_position)
+        {
+          SwitchThreeWayValveAndWait(desired_valve_position, desired_state);
+          break;
+        }
       }
 
       heat_cool_controller_->UpdateStateMachine();
@@ -99,23 +192,83 @@ void OpenAmberComponent::update()
 
     case State::DHW_HEAT:
     {
-      if(dhw_controller_->IsInIdleState() && desired_valve_position != current_valve_position)
+      dhw_controller_->CheckLegionellaCycle();
+
+      if(maintenance_requested && !dhw_controller_->IsRequestedToStop())
       {
-        SetThreeWayValve(desired_valve_position);
-        SetNextState(State::SWITCHING);
-        break;
+        dhw_controller_->RequestToStop();
+      }
+
+      if(dhw_controller_->IsInIdleState())
+      {
+        if(maintenance_requested)
+        {
+          auto working_mode_call = id(working_mode_switch).make_call();
+          working_mode_call.set_index(WORKING_MODE_MAINTENANCE);
+          working_mode_call.perform();
+          SetNextState(State::MAINTENANCE);          
+          break;
+        }
+        else if(desired_valve_position != current_valve_position)
+        {
+          SwitchThreeWayValveAndWait(desired_valve_position, desired_state);
+          break;
+        }
       }
 
       dhw_controller_->UpdateStateMachine();
       break;
     }
 
-    case State::SWITCHING:
+    case State::MAINTENANCE:
     {
-      if(last_three_way_valve_switch_ms_ + THREE_WAY_VALVE_SWITCH_TIME_S * 1000UL < millis())
+      if (!maintenance_requested)
       {
-        SetNextState(desired_valve_position == ThreeWayValvePosition::DHW ? State::DHW_HEAT : State::HEAT_COOL);
-        ESP_LOGI("amber", "3-way valve switch complete, new mode: %s", state_ == State::DHW_HEAT ? "DHW" : "HEAT/COOL");
+        if (!deaeration_routine_->IsIdle())
+        {
+          deaeration_routine_->Stop();
+        }
+        SetNextState(State::WAIT_MODBUS_CONNECTION);
+        break;
+      }
+
+      // Update active routines
+      if (!deaeration_routine_->IsIdle())
+      {
+        deaeration_routine_->UpdateStateMachine();
+      }
+      break;
+    }
+
+    case State::WAIT_THREE_WAY_VALVE:
+    {
+      if (App.get_loop_component_start_time() - valve_switch_started_ms_ < THREE_WAY_VALVE_SWITCH_TIME_S * 1000UL)
+      {
+        break;
+      }
+
+      if (!IsThreeWayValveFeedbackConfirmed(valve_target_position_))
+      {
+        // The active error suppresses all demand, so the next state stays idle until the error is reset.
+        ESP_LOGE("amber", "3-way valve relay feedback did not confirm the requested position, stopping system.");
+        id(error_three_way_valve_state_timeout).publish_state(true);
+      }
+      SetNextState(valve_target_state_);
+      break;
+    }
+
+    case State::WAIT_FOR_STATE_SWITCH:
+    {
+      uint32_t now = App.get_loop_component_start_time();
+      if (defer_state_change_until_ms_ > now && !maintenance_requested)
+      {
+        ESP_LOGD("amber", "Waiting for state switch, transitioning to next state in %lu ms", defer_state_change_until_ms_ - now);
+      }
+      else
+      {
+        defer_state_change_until_ms_ = 0;
+        SetNextState(deferred_machine_state_);
+        deferred_machine_state_ = State::UNKNOWN;
       }
       break;
     }
@@ -124,12 +277,93 @@ void OpenAmberComponent::update()
 
 void OpenAmberComponent::write_heat_pid_value(float value)
 {
-  heat_cool_controller_->SetPIDValue(value);
+  heat_cool_controller_->SetHeatPIDValue(value);
+}
+
+void OpenAmberComponent::write_cool_pid_value(float value)
+{
+  heat_cool_controller_->SetCoolPIDValue(value);
+}
+
+void OpenAmberComponent::write_pump_p0_pid_value(float value)
+{
+  pump_controller_->SetPumpP0PidOutput(value);
 }
 
 void OpenAmberComponent::reset_pump_interval()
 {
   pump_controller_->ResetInterval();
+}
+
+bool OpenAmberComponent::is_maintenance_state() const
+{
+  return state_ == State::MAINTENANCE;
+}
+
+void OpenAmberComponent::start_deaeration_routine(bool extended)
+{
+  if (state_ == State::MAINTENANCE && deaeration_routine_->IsIdle())
+  {
+    deaeration_routine_->Start(extended);
+  }
+}
+
+void OpenAmberComponent::stop_deaeration_routine()
+{
+  if (!deaeration_routine_->IsIdle())
+  {
+    deaeration_routine_->Stop();
+  }
+}
+
+bool OpenAmberComponent::is_deaeration_running() const
+{
+  return !deaeration_routine_->IsIdle();
+}
+
+bool OpenAmberComponent::is_deaeration_extended() const
+{
+  return deaeration_routine_->is_extended();
+}
+
+int OpenAmberComponent::get_deaeration_state() const
+{
+  return deaeration_routine_->GetStateId();
+}
+
+bool OpenAmberComponent::is_deaeration_dhw_circuit() const
+{
+  return deaeration_routine_->IsDhwCircuit();
+}
+
+int OpenAmberComponent::get_deaeration_current_cycle() const
+{
+  return deaeration_routine_->GetCurrentCycle();
+}
+
+int OpenAmberComponent::get_deaeration_cycle_count() const
+{
+  return deaeration_routine_->GetCycleCount();
+}
+
+int OpenAmberComponent::get_deaeration_progress_percent() const
+{
+  return deaeration_routine_->GetProgressPercent();
+}
+
+uint32_t OpenAmberComponent::get_deaeration_remaining_seconds() const
+{
+  return deaeration_routine_->GetRemainingSeconds();
+}
+
+std::string OpenAmberComponent::get_deaeration_phase_text() const
+{
+  return deaeration_routine_->GetPhaseText();
+}
+
+uint32_t OpenAmberComponent::get_deaeration_duration_seconds(bool extended) const
+{
+  return deaeration_routine_->GetTotalDurationS(extended);
 }
 
 // Privates
@@ -138,21 +372,36 @@ void OpenAmberComponent::SetNextState(State state)
   state_ = state;
   const char* txt = StateToString(state);
   id(state_machine_state_main).publish_state(txt);
-  ESP_LOGI("amber", "HEAT_COOL state changed: %s", txt);
+  ESP_LOGI("amber", "Main State changed: %s", txt);
+}
+
+void OpenAmberComponent::LeaveStateAndSetNextStateAfterWaitTime(State new_state, uint32_t defer_ms)
+{
+  deferred_machine_state_ = new_state;
+  defer_state_change_until_ms_ = App.get_loop_component_start_time() + defer_ms;
+  SetNextState(State::WAIT_FOR_STATE_SWITCH);
 }
 
 const char* OpenAmberComponent::StateToString(State state)
 {
   switch (state)
   {
+    case State::WAIT_MODBUS_CONNECTION:
+      return "Waiting for Modbus connection";
     case State::INITIALIZING:
       return "Initializing";
-    case State::SWITCHING:
-      return "Switching";
+    case State::WAIT_INITIALIZATION:
+      return "Waiting for initialization";
+    case State::WAIT_FOR_STATE_SWITCH:
+      return "Waiting for state switch";
+    case State::WAIT_THREE_WAY_VALVE:
+      return "Waiting for 3-way valve";
     case State::DHW_HEAT:
       return "DHW";
     case State::HEAT_COOL:
       return "Heat/Cool";
+    case State::MAINTENANCE:
+      return "Maintenance";
     default:
       return "Unknown";
   }
@@ -171,8 +420,30 @@ void OpenAmberComponent::SetThreeWayValve(ThreeWayValvePosition position)
     id(three_way_valve_heat_cool_switch).turn_on();
   }
 
-  last_three_way_valve_switch_ms_ = millis();
   ESP_LOGI("amber", "Setting 3-way valve to %s.", position == ThreeWayValvePosition::DHW ? "DHW" : "Heating/Cooling");
+}
+
+/// @brief Sends the 3-way valve command and waits for the valve travel time before entering next_state.
+/// The inside unit relay feedback is checked at the end of that wait.
+void OpenAmberComponent::SwitchThreeWayValveAndWait(ThreeWayValvePosition position, State next_state)
+{
+  SetThreeWayValve(position);
+  valve_target_position_ = position;
+  valve_target_state_ = next_state;
+  valve_switch_started_ms_ = App.get_loop_component_start_time();
+  SetNextState(State::WAIT_THREE_WAY_VALVE);
+}
+
+/// @brief Checks the inside unit relay feedback registers: 1305 mirrors the heat/cool valve output (1105),
+/// 1312 mirrors the DHW valve output (1112). They only confirm the output was switched, not the valve end position.
+bool OpenAmberComponent::IsThreeWayValveFeedbackConfirmed(ThreeWayValvePosition position)
+{
+  if (!id(three_way_valve_active_sensor).has_state() || !id(three_way_valve_dhw_active_sensor).has_state())
+  {
+    return false;
+  }
+  bool want_dhw = position == ThreeWayValvePosition::DHW;
+  return id(three_way_valve_dhw_active_sensor).state == want_dhw && id(three_way_valve_active_sensor).state == !want_dhw;
 }
 
 ThreeWayValvePosition OpenAmberComponent::GetThreeWayValvePosition()
@@ -194,7 +465,7 @@ ThreeWayValvePosition OpenAmberComponent::GetDesiredThreeWayValvePosition()
   // TODO: Potentially prioritize heating when in certain conditions.
 
   // DHW has priority
-  if (dhw_controller_->CanStartDhw())
+  if (id(dhw_demand_active_sensor).state)
   {
     return ThreeWayValvePosition::DHW;
   }
@@ -202,5 +473,92 @@ ThreeWayValvePosition OpenAmberComponent::GetDesiredThreeWayValvePosition()
   // Otherwise use heating/cooling position
   return ThreeWayValvePosition::HEATING_COOLING;
 }
+
+void OpenAmberComponent::WriteHeatingFrequencyTable()
+{
+    // Patch heating frequency table to have more control in low load situations.
+    id(heating_frequency_index_1).make_call().set_value(28).perform();
+    id(heating_frequency_index_2).make_call().set_value(36).perform();
+    id(heating_frequency_index_3).make_call().set_value(43).perform();
+    id(heating_frequency_index_4).make_call().set_value(55).perform();
+    id(heating_frequency_index_5).make_call().set_value(61).perform();
+    id(heating_frequency_index_6).make_call().set_value(67).perform();
+    id(heating_frequency_index_7).make_call().set_value(72).perform();
+    id(heating_frequency_index_8).make_call().set_value(79).perform();
+    id(heating_frequency_index_9).make_call().set_value(85).perform();
+    id(heating_frequency_index_10).make_call().set_value(90).perform();
+}
+
+void OpenAmberComponent::WriteCoolingFrequencyTable()
+{
+    id(cooling_frequency_index_0).make_call().set_value(0).perform();
+    id(cooling_frequency_index_1).make_call().set_value(20).perform();
+    id(cooling_frequency_index_2).make_call().set_value(26).perform();
+    id(cooling_frequency_index_3).make_call().set_value(30).perform();
+    id(cooling_frequency_index_4).make_call().set_value(36).perform();
+    id(cooling_frequency_index_5).make_call().set_value(43).perform();
+    id(cooling_frequency_index_6).make_call().set_value(48).perform();
+    id(cooling_frequency_index_7).make_call().set_value(55).perform();
+    id(cooling_frequency_index_8).make_call().set_value(69).perform();
+    id(cooling_frequency_index_9).make_call().set_value(74).perform();
+    id(cooling_frequency_index_10).make_call().set_value(82).perform();
+}
+
+void OpenAmberComponent::CheckModbusConnectionTimeout()
+{
+  // Check for timeout
+  if(modbus_disconnected_since_ms_ == 0)
+  {
+    modbus_disconnected_since_ms_ = App.get_loop_component_start_time();
+  }
+
+  const uint32_t timeout_ms = MODBUS_CONNECTION_TIMEOUT_S * 1000UL;
+  const uint32_t now = App.get_loop_component_start_time();
+  if((now - modbus_disconnected_since_ms_) >= timeout_ms)
+  {
+    if(!id(error_modbus_connection_timeout).state)
+    {
+      ESP_LOGE("amber", "Modbus connection timeout reached after %lu seconds.", (unsigned long) MODBUS_CONNECTION_TIMEOUT_S);
+      id(error_modbus_connection_timeout).publish_state(true);
+    }
+
+    modbus_disconnected_error_occurred_ = true;
+  }
+}
+
+void OpenAmberComponent::write_mixing_valve_zone1_pid_value(float value)
+{
+  if (mixing_valve_zone1_)
+    mixing_valve_zone1_->SetPidOutput(value);
+}
+
+void OpenAmberComponent::write_mixing_valve_zone2_pid_value(float value)
+{
+  if (mixing_valve_zone2_)
+    mixing_valve_zone2_->SetPidOutput(value);
+}
+
+float OpenAmberComponent::get_mixing_valve_zone1_position() const
+{
+  return mixing_valve_zone1_ ? mixing_valve_zone1_->GetValvePositionPercent() : 0.0f;
+}
+
+float OpenAmberComponent::get_mixing_valve_zone2_position() const
+{
+  return mixing_valve_zone2_ ? mixing_valve_zone2_->GetValvePositionPercent() : 0.0f;
+}
+
+void OpenAmberComponent::StopControllers()
+{
+  ESP_LOGE("amber", "Stopping regulation due to inside unit failsafe/reboot.");
+  compressor_controller_->Stop();
+  pump_controller_->Stop();
+  heat_cool_controller_->StopAndSetIdleState();
+  dhw_controller_->StopAndSetIdleState();
+  auto working_mode_call = id(working_mode_switch).make_call();
+  working_mode_call.set_index(WORKING_MODE_STANDBY);
+  working_mode_call.perform();
+}
+
 }  // namespace openamber
 }  // namespace esphome
