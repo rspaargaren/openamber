@@ -1188,7 +1188,7 @@
               case 150: return "Amber 95";
               case 15:  return "Amber 120";
               case 145: return "HP-S 95";
-              default:  return "Onbekend model";
+              default:  return std::string("Onbekend (") + std::to_string(model) + ")";
             }
           }
           return "Amber";
