@@ -48,7 +48,18 @@ naar 0.8.0 (oorzaak onbekend).
 
 ### Ideeën om uit te werken
 
-1. **Externe vloerpomp op P1 aansluiten** *(software bestaat al)*
+1. **Externe vloerpomp op P1 aansluiten** *(software bestaat al, maar nu geblokkeerd)*
+   - **Blokkade:** de vloerverwarmingsunit heeft regelkleppen per groep. De pomp mag alleen
+     draaien als er minstens één klep open staat, en OpenAmber kent die stand niet. P1 schakelt
+     alleen op de pompvraag van de warmtepomp, dus de pomp kan dan tegen dichte kleppen draaien.
+   - Mogelijke oplossingen om uit te zoeken:
+     - De pomp door de vloerregeling laten schakelen (die kent de klepstanden) en het
+       pomp-/vraagsignaal van die regeling als **externe warmtevraag** naar OpenAmber sturen
+       (bedrade ingang, register 1214).
+     - Klepstand terugkoppelen naar OpenAmber (eindschakelaars van de klepmotoren, of de
+       vloerregeling via Home Assistant) en P1 alleen toestaan als er een klep open staat.
+     - Een overstroomventiel/bypass in de vloerverdeler, zodat de pomp nooit tegen dichte
+       kleppen draait.
    - Uitzoeken: welke klemmen P1 zijn op de binnenunit, of het relais spanning levert of
      potentiaalvrij is, en het maximale vermogen tegenover mijn pomp.
    - Daarna "Pomp P1 aanwezig" aanzetten en controleren of het gedrag past: P1 stopt tijdens
@@ -101,15 +112,40 @@ naar 0.8.0 (oorzaak onbekend).
      `src/openamber/ui/bindings/script_ui_bindings.yaml`, `src/openamber/core/sensors.yaml`
      voor het pompvermogen) en een PR/issue upstream indienen.
 
-8. **README-correctie** *(klein)*
+8. **Opstartscherm / logo bij het aanzetten** *(nieuw)*
+   - Probleem: na het inschakelen blijft het scherm een tijd zwart. De ESP32 start op,
+     initialiseert PSRAM en het scherm, en maakt daarna in één keer ca. 1400 LVGL-elementen aan
+     (één grote `setup()`, daarom `-mauto-litpools`). Pas daarna wordt het eerste beeld getekend.
+   - Het oude opstartscherm (logo, spinner, "Verbinding maken met de warmtepomp…") is upstream
+     in #234 verwijderd (`src/openamber/ui/boot_screen.yaml` is nu leeg). Het logo staat nog in
+     `src/openamber/ui/images/logo-512x512.png`.
+   - Opties:
+     1. Het oude LVGL-opstartscherm terugzetten (eenvoudig). Het verschijnt pas als LVGL klaar is
+        en vult de zwarte periode dus niet.
+     2. Een echte vroege splash: een kleine eigen component die het logo direct na de
+        scherminitialisatie, en vóór de LVGL-opbouw, in het beeldgeheugen tekent (meer werk, maar
+        vult de zwarte periode echt).
+     3. De achtergrondverlichting pas aanzetten als de UI klaar is (simpel, geen logo, maar geen
+        verlicht zwart scherm).
+   - Eerst meten: hoe lang is het scherm zwart, en waar gaat die tijd heen (opstartlog via USB, of
+     timestamps loggen in de firmware)? Bij een paar seconden is optie 3 genoeg, bij langer
+     optie 2.
+   - Vraagt een firmwarewijziging en flash, dus pas na mijn toestemming.
+
+9. **README-correctie** *(klein)*
    - `README.md` regels 100 en 113 noemen Tv1/Tv2 nog "Outdoor coil temperature". Dat moet
      "Zone 1/2 flow temperature" zijn (zo staat het ook in de foutcodetabel F21/F22). Kan als PR
      upstream.
 
 ### Open vragen voor mij
 
+- Wat stuurt de vloerpomp nu precies aan (vloerregeling, thermostaat)? Heeft de vloerregeling
+  een pomp- of vraaguitgang, of eindschakelaars op de klepmotoren? Zit er een bypass in de
+  verdeler?
 - Welke klemmen zijn P1 op de binnenunit, en past mijn vloerpomp op dat relais?
 - Is P1 stoppen tijdens ontdooien gewenst? Wil ik naloop?
 - Welke GPIO zit op de sensor/AD-header van mijn Waveshare-bordversie?
 - Wil ik regelen op Tc (buffer) of op de vloeraanvoer (Tv1-NTC of Dallas)?
 - Moet de vloerbeveiliging de compressor stoppen, P1, of beide? Welke grenswaarde?
+- Hoe lang is het scherm zwart na het aanzetten, en wil ik een logo (optie 2) of is "scherm
+  uit tot de UI klaar is" (optie 3) genoeg?
