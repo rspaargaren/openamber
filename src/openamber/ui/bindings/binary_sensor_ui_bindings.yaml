@@ -1,0 +1,398 @@
+# ══════════════════════════════════════════════════════════════
+# Binary Sensor → LVGL UI bindings (event-driven via !extend)
+# These extend binary sensors defined in common/binary_sensors.yaml
+# to add on_state callbacks that update LVGL widgets on change.
+# ══════════════════════════════════════════════════════════════
+
+# ── Home page: Tiles ──
+- id: !extend defrost_active_sensor
+  on_state:
+    then:
+      - lvgl.widget.update:
+          id: tile_defrost
+          bg_color: !lambda |-
+            if (x) return lv_color_hex(0xF5F8FC);
+            return lv_color_hex(0x919191);
+      - lvgl.label.update:
+          id: tile_defrost_state
+          text: !lambda |-
+            if (x) return "AAN";
+            return "UIT";
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend backup_heater_active_sensor
+  on_state:
+    then:
+      - lvgl.widget.update:
+          id: tile_backup_heater
+          bg_color: !lambda |-
+            if (x) return lv_color_hex(0xF5F8FC);
+            return lv_color_hex(0x919191);
+      - lvgl.label.update:
+          id: tile_backup_state
+          text: !lambda |-
+            if (x) return "AAN";
+            return "UIT";
+
+- id: !extend bottom_heater_active_sensor
+  on_state:
+    then:
+      - lvgl.widget.update:
+          id: tile_baseplate
+          bg_color: !lambda |-
+            if (x) return lv_color_hex(0xF5F8FC);
+            return lv_color_hex(0x919191);
+      - lvgl.label.update:
+          id: tile_baseplate_state
+          text: !lambda |-
+            if (x) return "AAN";
+            return "UIT";
+      - script.execute: update_service_diag_summary_ui
+
+# ── Nav bar: Demand icons ──
+- id: !extend heat_demand_active_sensor
+  on_state:
+    then:
+      - lvgl.widget.update:
+          id: nav_status_heat_icon
+          hidden: !lambda 'return !x;'
+
+- id: !extend cool_demand_active_sensor
+  on_state:
+    then:
+      - lvgl.widget.update:
+          id: nav_status_cool_icon
+          hidden: !lambda 'return !x;'
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend dhw_demand_active_sensor
+  on_state:
+    then:
+      - lvgl.widget.update:
+          id: nav_status_dhw_icon
+          hidden: !lambda 'return !x;'
+
+# ── Home page: DHW pump active → circulation animation ──
+- id: !extend dhw_pump_active_sensor
+  on_state:
+    then:
+      - lvgl.widget.update:
+          id: dhw_circulation_spinner
+          hidden: !lambda 'return !x;'
+      - lvgl.widget.update:
+          id: dhw_flow_arrow_up
+          hidden: !lambda 'return !x;'
+      - lvgl.widget.update:
+          id: dhw_flow_arrow_down
+          hidden: !lambda 'return !x;'
+      - lvgl.label.update:
+          id: dhw_pump_state_label
+          text: !lambda |-
+            if (x) return "AAN";
+            return "UIT";
+      - lvgl.widget.update:
+          id: dhw_pump_icon
+          text_color: !lambda |-
+            if (x) return lv_color_hex(0x22D3EE);
+            return lv_color_hex(0x919191);
+      - lvgl.widget.update:
+          id: dhw_pump_state_label
+          text_color: !lambda |-
+            if (x) return lv_color_hex(0x22D3EE);
+            return lv_color_hex(0x919191);
+
+- id: !extend sg_ready_a_active_sensor
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend sg_ready_b_active_sensor
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend external_heat_demand_wired
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend external_heat_demand_wired_zone_2
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend heat_demand_active_sensor_zone_1
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend heat_demand_active_sensor_zone_2
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+
+- id: !extend external_cool_demand_wired
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+
+# ── Modbus connection status & header updates ──
+- id: !extend modbus_inside_online
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+      - script.execute: update_header_model_badge
+
+- id: !extend modbus_outside_online
+  on_state:
+    then:
+      - script.execute: update_service_diag_summary_ui
+      - script.execute: update_header_model_badge
+
+# ── Service page: error/warning cards with pagination ──
+- id: !extend error_active
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend warning_active
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_p01
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+
+- id: !extend error_flag_p02
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+
+- id: !extend error_flag_p03
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_p05
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_p06
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+
+- id: !extend error_flag_p07
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_p08
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_p09
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_p10
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_p11
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+
+- id: !extend error_flag_p13
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+
+- id: !extend error_flag_f01
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f02
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f03
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f04
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f05
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f06
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f07
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f09
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f10
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f16
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f17
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_f18
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e01
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e02
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e03
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e04
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e05
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e06
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e07
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_flag_e08
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_pump_start_timeout
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_compressor_start_timeout
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_pump_stop_timeout
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_modbus_connection_timeout
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_three_way_valve_state_timeout
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+
+- id: !extend error_inside_unit_failsafe
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_f13
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_f14
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_f15
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_f21
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_f22
+  on_state:
+    then:
+      - script.execute: update_service_errors_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_inside_comm_failsafe
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_inside_eeprom
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+      - script.execute: update_header_alert_icons
+
+- id: !extend error_flag_pump_p0_alarm
+  on_state:
+    then:
+      - script.execute: update_service_warnings_ui
+      - script.execute: update_header_alert_icons
+

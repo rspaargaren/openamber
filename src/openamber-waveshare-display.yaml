@@ -1,5 +1,14 @@
+substitutions:
+  device_model: waveshare-5-1024x600
+
 packages:
- - !include openamber/common/openamber.yaml
+ - !include openamber/core/openamber.yaml
+ - !include openamber/ui/display_globals.yaml
+ - !include openamber/ui/bindings/ui_bindings_package.yaml
+ - !include openamber/ui/ui_package.yaml
+ 
+wifi:
+  use_psram: true
 
 esp32:
   variant: esp32s3
@@ -8,13 +17,40 @@ esp32:
   framework:
     sdkconfig_options:
       CONFIG_ESP32S3_DATA_CACHE_64KB: y
-      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_USE_MALLOC: y
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: y
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y  
+      CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL: "0"
+      CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL: "65536"
+      CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP: y
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: y
+      CONFIG_MDNS_TASK_CREATE_FROM_SPIRAM: y
+      CONFIG_MDNS_MEMORY_ALLOC_SPIRAM: y
+      CONFIG_NVS_ALLOCATE_CACHE_IN_SPIRAM: y
       CONFIG_SPIRAM_RODATA: y
+      CONFIG_ESP_TASK_WDT_TIMEOUT_S: "60"
+    advanced:
+      loop_task_stack_size: 10240
+      execute_from_psram: true
 
 esphome:
-  platformio_options:
-    board_build.arduino.memory_type: qio_opi
-    board_build.flash_mode: dio
+  project:
+    version: dev
+  on_boot:
+    - priority: -100
+      then:
+        - lvgl.label.update:
+            id: header_title
+            text:
+              format: "OpenAmber %s"
+              args: ['ESPHOME_PROJECT_VERSION']
+        - script.execute: update_firmware_ui
+
+# Workaround: native ESP-IDF esphome.build_flags filters out -m... Xtensa compiler options.
+# -mauto-litpools is required because ESPHome's generated setup() exceeds the L32R literal range due to large amount of LVGL elements.
+native_build_flags:
+  cxx_flags:
+    - -mauto-litpools
 
 uart:
   rx_pin:
@@ -41,19 +77,19 @@ display:
   - platform: mipi_rgb
     model: WAVESHARE-5-1024X600
     id: my_display
+    auto_clear_enabled: false
+    dimensions:
+      width: 1024
+      height: 600
+      offset_width: 0
+      offset_height: 0
+      pad_width: 0
+      pad_height: 0
 
-switch:
-  - platform: gpio
-    name: backlight switch
-    pin:
-      ch422g: ch422g_hub
-      number: 2
-    restore_mode: ALWAYS_ON
-    internal: true
-
-globals:
-  - id: is_idled
-    type: bool
+output:
+  - platform: ledc
+    pin: GPIO15
+    id: backlight
 
 touchscreen:
   - platform: gt911
@@ -66,41 +102,75 @@ touchscreen:
     on_release:
       - if:
           condition:
-            lambda: 'return (id(is_idled) == true);'
+            lambda: 'return id(is_idled);'
           then:
             - globals.set:
                 id: is_idled
                 value: 'false'
+            - output.set_level:
+                id: backlight
+                level: 100%
             - lvgl.widget.hide:
                 id: idle_screen_overlay
 
+api:
+  on_client_connected:
+    - lvgl.widget.update:
+        id: nav_status_ha_icon
+        text_color: 0x22C55E
+  on_client_disconnected:
+    - lvgl.widget.update:
+        id: nav_status_ha_icon
+        text_color: 0xEF4444
+
+
 interval:
- - interval: 5s
-   then: !include openamber/ui/ui_update_loop.yaml
+  - interval: 700ms
+    then:
+      - script.execute: toggle_header_alert_blink
 
-image:
-  - file: "openamber/ui/images/water_circuit.png"
-    id: img_water_circuit
-    type: RGB565
-    transparency: alpha_channel
-    resize: 420x420
 
-font: !include openamber/ui/fonts.yaml
+
+sensor:
+  - platform: debug
+    psram:
+      name: "Free PSRAM"
+      id: system_psram_free
+      disabled_by_default: true
+  - platform: pulse_counter
+    pin:
+      number: GPIO16
+      mode:
+        input: true
+        pullup: false
+    internal_filter: 
+      milliseconds: 1
+    use_pcnt: false
+    name: Pulse meter
+    id: water_flow_rate
+    device_class: volume_flow_rate
+    unit_of_measurement: L/min
+    filters:
+      - lambda: return (x / id(flow_sensor_calibration).state);
+    total:
+      name: Total liters
+      unit_of_measurement: l
+      filters:
+        - lambda: return x / id(flow_sensor_calibration).state;
+        - delta: 1
 
 lvgl:
   on_idle:
-    - timeout: 60s
+    - timeout: !lambda 'return id(display_screen_timeout_ms);'
       then:
         - globals.set:
             id: is_idled
             value: 'true'
+        - output.set_level:
+            id: backlight
+            level: 50% # 50% turns off the backlight
         - lvgl.widget.show:
             id: idle_screen_overlay
-  disp_bg_color: 0x0A2747
-  widgets:
-    - !include openamber/ui/root_bg.yaml
-    - !include openamber/ui/header_bar.yaml
-    - !include openamber/ui/page_home.yaml
-    - !include openamber/ui/nav_bar.yaml
-    - !include openamber/ui/boot_screen.yaml
-    - !include openamber/ui/idle_screen_overlay.yaml
+    - timeout: ${display_return_home_timeout}
+      then:
+        - script.execute: display_return_home

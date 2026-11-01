@@ -1,0 +1,923 @@
+# ==============================================================================
+# OpenAmber Mock Hardware Entities for Host SDL Simulation
+# ==============================================================================
+# This package mocks physical heat pump signals and external services
+# that are provided by Modbus or GPIO on real hardware.
+# All application logic, settings, and PID controllers are in core_package.yaml.
+# ==============================================================================
+
+time:
+  - platform: mock_time
+    id: my_time
+    # Empty timezone disables USE_TIME_TIMEZONE. With it enabled, core/time.h pulls
+    # namespace esphome::time into every TU, which breaks the unqualified time() call
+    # in ESPHome's logger_host.cpp (2026.10.x) on host builds.
+    timezone: ""
+
+update:
+  - platform: mock_update
+    id: firmware_update
+    name: Firmware Update
+
+sensor:
+  - platform: template
+    id: voltage_outside_unit
+    name: "Spanning buitenunit"
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    lambda: 'return 230.0f;'
+    update_interval: 5s
+  - platform: template
+    id: current_outside_unit
+    name: "Stroom buitenunit"
+    unit_of_measurement: "A"
+    accuracy_decimals: 1
+    lambda: 'return 0.0f;'
+    update_interval: 5s
+  - platform: template
+    id: error_register_2119_raw
+    name: "Foutregister 2119"
+    accuracy_decimals: 0
+    # Holds an injected value like a real Modbus register would (previously reset to 0 every 5s).
+    lambda: |-
+      if (id(error_register_2119_raw).has_state()) return id(error_register_2119_raw).state;
+      return 0.0f;
+    update_interval: 5s
+  - platform: template
+    id: error_register_2120_raw
+    name: "Foutregister 2120"
+    accuracy_decimals: 0
+    # Holds an injected value like a real Modbus register would (previously reset to 0 every 5s).
+    lambda: |-
+      if (id(error_register_2120_raw).has_state()) return id(error_register_2120_raw).state;
+      return 0.0f;
+    update_interval: 5s
+  - platform: template
+    id: error_register_2121_raw
+    name: "Foutregister 2121"
+    accuracy_decimals: 0
+    # Holds an injected value like a real Modbus register would (previously reset to 0 every 5s).
+    lambda: |-
+      if (id(error_register_2121_raw).has_state()) return id(error_register_2121_raw).state;
+      return 0.0f;
+    update_interval: 5s
+  - platform: template
+    id: inside_unit_status_1225_raw
+    name: "Binnenunit status register 1225"
+    accuracy_decimals: 0
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state()) return id(inside_unit_status_1225_raw).state;
+      return 0.0f;
+    update_interval: 5s
+    on_value:
+      then:
+        - component.update: room_temperature
+        - component.update: dhw_temperature_tw_sensor
+        - component.update: heat_cool_temperature_tc
+        - component.update: outlet_temperature_tuo
+        - component.update: inlet_temperature_tui
+        - component.update: heat_cool_temperature_tv1
+        - component.update: heat_cool_temperature_tv2
+  - platform: template
+    id: outside_unit_program_version
+    name: "Buitenunit programmaversie"
+    accuracy_decimals: 0
+    lambda: 'return 1.0f;'
+    update_interval: 5s
+  - platform: template
+    id: outside_unit_eeprom_version_part1
+    name: "EEPROM versie deel 1"
+    accuracy_decimals: 0
+    lambda: 'return 1.0f;'
+    update_interval: 5s
+  - platform: template
+    id: outside_unit_eeprom_version_part2
+    name: "EEPROM versie deel 2"
+    accuracy_decimals: 0
+    lambda: 'return 14.0f;'
+    update_interval: 5s
+  - platform: template
+    id: system_heap_free
+    name: "Vrij RAM"
+    lambda: 'return 245000.0f;'
+    update_interval: 5s
+  - platform: template
+    id: system_heap_fragmentation
+    name: "RAM Fragmentatie"
+    lambda: 'return 8.0f;'
+    update_interval: 5s
+  - platform: template
+    id: system_heap_max_block
+    name: "Grootste RAM blok"
+    lambda: 'return 180000.0f;'
+    update_interval: 5s
+  - platform: template
+    id: wifi_signal_db
+    name: "Wi-Fi RSSI"
+    lambda: 'return -62.0f;'
+    update_interval: 5s
+  - platform: template
+    id: outside_unit_eeprom_version
+    name: "EEPROM"
+    lambda: 'return 114.0f;'
+    update_interval: 1s
+  - platform: template
+    id: outlet_temperature_tuo
+    name: "Aanvoertemperatuur (Tuo)"
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0008) != 0)) {
+        return NAN;
+      }
+      if (id(outlet_temperature_tuo).has_state()) return id(outlet_temperature_tuo).state;
+      return 35.4f;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0008) != 0)) {
+            return NAN;
+          }
+          return x;
+    update_interval: 5s
+    # Same trigger as modbus/sensors.yaml: heat_exchanger_delta_t has update_interval: never
+    # and is only recalculated when Tuo/Tui publish. Without this the P0 pump PID never runs.
+    on_value:
+      then:
+        - component.update: heat_exchanger_delta_t
+  - platform: template
+    id: inlet_temperature_tui
+    name: "Retourtemperatuur (Tui)"
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0010) != 0)) {
+        return NAN;
+      }
+      if (id(inlet_temperature_tui).has_state()) return id(inlet_temperature_tui).state;
+      return 30.1f;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0010) != 0)) {
+            return NAN;
+          }
+          return x;
+    update_interval: 5s
+    on_value:
+      then:
+        - component.update: heat_exchanger_delta_t
+  - platform: template
+    id: temperature_outside_ta
+    name: "Buitentemperatuur (Ta)"
+    lambda: |-
+      if (id(temperature_outside_ta).has_state()) return id(temperature_outside_ta).state;
+      return 7.2f;
+    update_interval: 5s
+  - platform: template
+    id: outdoor_temperature_tp_sensor
+    name: "Buitencondensor (Tp)"
+    lambda: |-
+      if (id(outdoor_temperature_tp_sensor).has_state()) return id(outdoor_temperature_tp_sensor).state;
+      return 5.1f;
+    update_interval: 5s
+  - platform: template
+    id: current_water_temperature_tc_sensor
+    name: "Water temperatuur (Tc)"
+    lambda: |-
+      if (id(current_water_temperature_tc_sensor).has_state()) return id(current_water_temperature_tc_sensor).state;
+      return 35.2f;
+    update_interval: 5s
+  - platform: template
+    id: dhw_temperature_tw_sensor
+    name: "Tapwatertemperatuur (Tw)"
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0002) != 0)) {
+        return NAN;
+      }
+      if (id(dhw_temperature_tw_sensor).has_state()) return id(dhw_temperature_tw_sensor).state;
+      return 52.0f;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0002) != 0)) {
+            return NAN;
+          }
+          return x;
+    update_interval: 5s
+  - platform: template
+    id: current_heating_temperature_setpoint
+    name: "Huidig verwarmingssetpoint"
+    lambda: 'return id(current_setpoint).state;'
+    update_interval: 5s
+  - platform: template
+    id: current_cooling_temperature_setpoint
+    name: "Huidig koelsetpoint"
+    lambda: 'return 18.0f;'
+    update_interval: 5s
+  - platform: template
+    id: calculated_heat_curve_setpoint
+    name: "Berekend stooklijn setpoint"
+    lambda: 'return id(heat_curve_calculated_setpoint).state;'
+    update_interval: 5s
+  - platform: template
+    id: room_temperature
+    name: "Kamertemperatuur (Tr)"
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0001) != 0)) {
+        return NAN;
+      }
+      if (id(room_temperature).has_state()) return id(room_temperature).state;
+      return 20.8f;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0001) != 0)) {
+            return NAN;
+          }
+          return x;
+    update_interval: 5s
+  - platform: template
+    id: heat_cool_temperature_tc
+    name: "Cv-aanvoertemperatuur (Tc)"
+    update_interval: 5s
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0004) != 0)) {
+        return NAN;
+      }
+      if (id(heat_cool_temperature_tc).has_state()) return id(heat_cool_temperature_tc).state;
+      return id(current_water_temperature_tc_sensor).state;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0004) != 0)) {
+            return NAN;
+          }
+          return x;
+  - platform: template
+    id: heat_cool_temperature_tv1
+    name: "Cv-aanvoertemperatuur zone 1 (Tv1)"
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0100) != 0)) {
+        return NAN;
+      }
+      if (id(heat_cool_temperature_tv1).has_state()) return id(heat_cool_temperature_tv1).state;
+      return 30.0f;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0100) != 0)) {
+            return NAN;
+          }
+          return x;
+    update_interval: 5s
+  - platform: template
+    id: heat_cool_temperature_tv2
+    name: "Cv-aanvoertemperatuur zone 2 (Tv2)"
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0200) != 0)) {
+        return NAN;
+      }
+      if (id(heat_cool_temperature_tv2).has_state()) return id(heat_cool_temperature_tv2).state;
+      return 28.0f;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0200) != 0)) {
+            return NAN;
+          }
+          return x;
+    update_interval: 5s
+  - platform: template
+    id: condensate_temperature_tup
+    name: "Condensatietemperatuur (Tup)"
+    disabled_by_default: True
+    lambda: |-
+      if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0020) != 0)) {
+        return NAN;
+      }
+      if (id(condensate_temperature_tup).has_state()) return id(condensate_temperature_tup).state;
+      return 30.0f;
+    filters:
+      - lambda: |-
+          if (id(inside_unit_status_1225_raw).has_state() && (((uint16_t) id(inside_unit_status_1225_raw).state & 0x0020) != 0)) {
+            return NAN;
+          }
+          return x;
+    update_interval: 5s
+  - platform: template
+    id: fan_rpm_sensor
+    name: "Ventilator RPM"
+    lambda: 'return 450.0f;'
+    update_interval: 5s
+  - platform: template
+    id: pump_p0_current_pwm_sensor
+    name: "Pomp P0 PWM"
+    # Mirrors modbus/sensors.yaml: the raw value is the inverted register (0..1000, 1000 = off),
+    # the published state is the duty cycle in %. PumpController compares against get_raw_state().
+    unit_of_measurement: "%"
+    lambda: |-
+      return id(pump_control_pwm_number).state;
+    filters:
+      - lambda: |-
+          return ((x * -1) + 1000) / 10;
+    update_interval: 1s
+  - platform: template
+    id: water_flow_rate
+    name: "Waterdebiet"
+    lambda: 'return 18.2f;'
+    update_interval: 5s
+  - platform: template
+    id: compressor_setpoint_frequency
+    name: "Compressor doelfrequentie"
+    lambda: |-
+      int mode = id(compressor_control_select).active_index().value_or(0);
+      if (mode > 0) return 30.0f + mode * 5.0f;
+      return 0.0f;
+    update_interval: 1s
+  - platform: template
+    id: current_compressor_frequency
+    name: "Compressorfrequentie"
+    lambda: |-
+      if (id(mock_compressor_frequency_override).state >= 0.0f) return id(mock_compressor_frequency_override).state;
+      // Like the outdoor unit: during a defrost the compressor runs at the defrost standby frequency.
+      if (id(defrost_active_sensor).state) return 36.0f;
+      int mode = id(compressor_control_select).active_index().value_or(0);
+      if (mode > 0) return 30.0f + mode * 5.0f;
+      return 0.0f;
+    update_interval: 1s
+  - platform: template
+    id: defrost_standby_frequency
+    lambda: 'return 36.0f;'
+    update_interval: 5s
+  - platform: template
+    id: suction_pressure_ps
+    name: "Zuigdruk (Ps)"
+    lambda: 'return 0.85f;'
+    update_interval: 5s
+  - platform: template
+    id: discharge_pressure_pd
+    name: "Persdruk (Pd)"
+    lambda: |-
+      if (id(discharge_pressure_pd).has_state()) return id(discharge_pressure_pd).state;
+      return 18.0f;
+    update_interval: 5s
+  - platform: template
+    id: outdoor_unit_td_no_increase_limit
+    lambda: |-
+      if (id(outdoor_unit_td_no_increase_limit).has_state()) return {};
+      return 95.0f;
+    update_interval: 5s
+  - platform: template
+    id: outdoor_unit_pd_no_increase_limit
+    lambda: |-
+      if (id(outdoor_unit_pd_no_increase_limit).has_state()) return {};
+      return 26.0f;
+    update_interval: 5s
+  - platform: template
+    id: discharge_temperature_td
+    name: "Persgastemperatuur (Td)"
+    lambda: |-
+      if (id(discharge_temperature_td).has_state()) return id(discharge_temperature_td).state;
+      return 60.0f;
+    update_interval: 5s
+  - platform: template
+    id: expansion_valve_position
+    name: "Expansieventiel"
+    lambda: 'return 180.0f;'
+    update_interval: 5s
+  - platform: template
+    id: model_identification_1
+    name: "Model identificatie"
+    lambda: 'return 150.0f;'
+    update_interval: 5s
+  - platform: template
+    id: system_psram_free
+    name: "Vrij PSRAM"
+    lambda: 'return 6500000.0f;'
+    update_interval: 5s
+
+binary_sensor:
+  - platform: template
+    id: crankcase_heater_active_sensor
+    name: "Carterverwarming actief"
+    lambda: 'return false;'
+  - platform: template
+    id: backup_heater_active_sensor
+    name: "Bijverwarming actief"
+    lambda: 'return id(backup_heater_relay).state;'
+  - platform: template
+    id: bottom_heater_active_sensor
+    name: "Bodemverwarming actief"
+    lambda: 'return false;'
+  - platform: template
+    id: external_heat_demand_wired
+    name: "Externe warmtevraag"
+  - platform: template
+    id: external_heat_demand_wired_zone_2
+    name: "Externe warmtevraag Zone 2"
+  - platform: template
+    id: external_cool_demand_wired
+    name: "Externe koelvraag"
+  - platform: template
+    id: internal_pump_active
+    name: "Pomp P0 actief"
+    lambda: |-
+      if (!id(pump_p0_relay_switch).state) return false;
+      return id(pump_control_pwm_number).state < 995.0f;
+  - platform: template
+    id: pump_p1_active
+    name: "Pomp P1"
+    device_class: running
+    lambda: 'return id(pump_p1_relay_switch).state;'
+  - platform: template
+    id: three_way_valve_active_sensor
+    name: "3-weg klep"
+    lambda: 'return !id(mock_three_way_valve_feedback_missing).state && id(three_way_valve_heat_cool_switch).state;'
+  - platform: template
+    id: three_way_valve_dhw_active_sensor
+    name: "3-weg klep SWW"
+    lambda: 'return !id(mock_three_way_valve_feedback_missing).state && id(three_way_valve_dhw_switch).state;'
+  - platform: template
+    id: dhw_pump_active_sensor
+    name: "Tapwater pomp actief"
+    lambda: 'return id(dhw_pump_relay_switch).state;'
+  - platform: template
+    id: defrost_active_sensor
+    name: "Ontdooicyclus actief"
+  - platform: template
+    id: sg_ready_a_active_sensor
+    name: "SG Ready A actief"
+  - platform: template
+    id: sg_ready_b_active_sensor
+    name: "SG Ready B actief"
+
+number:
+  - platform: template
+    id: mock_compressor_frequency_override
+    # Simulator only: forces the reported compressor frequency, -1 = off.
+    optimistic: true
+    min_value: -1
+    max_value: 120
+    step: 1
+    initial_value: -1
+  - platform: template
+    id: eev_open_setting_manual_number
+    name: "EEV opening handmatig"
+    min_value: 0
+    max_value: 500
+    step: 1
+    optimistic: true
+    initial_value: 0
+  - platform: template
+    id: heating_frequency_index_1
+    name: "Heating freq 1"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 28
+  - platform: template
+    id: heating_frequency_index_2
+    name: "Heating freq 2"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 36
+  - platform: template
+    id: heating_frequency_index_3
+    name: "Heating freq 3"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 43
+  - platform: template
+    id: heating_frequency_index_4
+    name: "Heating freq 4"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 55
+  - platform: template
+    id: heating_frequency_index_5
+    name: "Heating freq 5"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 61
+  - platform: template
+    id: heating_frequency_index_6
+    name: "Heating freq 6"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 67
+  - platform: template
+    id: heating_frequency_index_7
+    name: "Heating freq 7"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 72
+  - platform: template
+    id: heating_frequency_index_8
+    name: "Heating freq 8"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 79
+  - platform: template
+    id: heating_frequency_index_9
+    name: "Heating freq 9"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 85
+  - platform: template
+    id: heating_frequency_index_10
+    name: "Heating freq 10"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 90
+  - platform: template
+    id: cooling_frequency_index_0
+    name: "Cooling freq 0"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 0
+  - platform: template
+    id: cooling_frequency_index_1
+    name: "Cooling freq 1"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 20
+  - platform: template
+    id: cooling_frequency_index_2
+    name: "Cooling freq 2"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 26
+  - platform: template
+    id: cooling_frequency_index_3
+    name: "Cooling freq 3"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 30
+  - platform: template
+    id: cooling_frequency_index_4
+    name: "Cooling freq 4"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 36
+  - platform: template
+    id: cooling_frequency_index_5
+    name: "Cooling freq 5"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 43
+  - platform: template
+    id: cooling_frequency_index_6
+    name: "Cooling freq 6"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 48
+  - platform: template
+    id: cooling_frequency_index_7
+    name: "Cooling freq 7"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 55
+  - platform: template
+    id: cooling_frequency_index_8
+    name: "Cooling freq 8"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 69
+  - platform: template
+    id: cooling_frequency_index_9
+    name: "Cooling freq 9"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 74
+  - platform: template
+    id: cooling_frequency_index_10
+    name: "Cooling freq 10"
+    optimistic: true
+    min_value: 0
+    max_value: 120
+    step: 1
+    initial_value: 82
+  - platform: template
+    id: mixing_valve_zone1_output
+    name: "Mengventiel zone 1"
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 0
+  - platform: template
+    id: mixing_valve_zone2_output
+    name: "Mengventiel zone 2"
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 0
+  - platform: template
+    id: bottomplate_heater_ambient_temperature_start
+    name: "Bodemplaatverwarming start temp"
+    optimistic: true
+    min_value: -10.0
+    max_value: 10.0
+    step: 1.0
+    initial_value: 2.0
+  - platform: template
+    id: bottomplate_heater_ambient_hysteresis_stop
+    name: "Bodemplaatverwarming stop temp"
+    optimistic: true
+    min_value: -10.0
+    max_value: 10.0
+    step: 1.0
+    initial_value: 5.0
+  - platform: template
+    id: enter_defrost_temperature
+    name: "Start ontdooitemperatuur"
+    optimistic: true
+    min_value: -15.0
+    max_value: 5.0
+    step: 1.0
+    initial_value: -5.0
+  - platform: template
+    id: exit_defrost_temperature
+    name: "Stop ontdooitemperatuur"
+    optimistic: true
+    min_value: 0.0
+    max_value: 25.0
+    step: 1.0
+    initial_value: 12.0
+  - platform: template
+    id: max_defrost_time
+    name: "Maximale ontdooitijd"
+    optimistic: true
+    min_value: 1.0
+    max_value: 30.0
+    step: 1.0
+    initial_value: 10.0
+  - platform: template
+    id: outdoor_unit_fan_param_3301
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 520
+  - platform: template
+    id: outdoor_unit_fan_param_3303
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 560
+  - platform: template
+    id: outdoor_unit_fan_param_3304
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 620
+  - platform: template
+    id: outdoor_unit_fan_param_3305
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 680
+  - platform: template
+    id: outdoor_unit_fan_param_3306
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 720
+  - platform: template
+    id: outdoor_unit_fan_param_3323
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 620
+  - platform: template
+    id: outdoor_unit_fan_param_3325
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 620
+  - platform: template
+    id: outdoor_unit_fan_param_3326
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 720
+  - platform: template
+    id: outdoor_unit_fan_param_3327
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 720
+  - platform: template
+    id: outdoor_unit_fan_param_3328
+    optimistic: true
+    min_value: 300
+    max_value: 900
+    step: 10
+    initial_value: 720
+  - platform: template
+    id: enter_defrost_temperature_2
+    optimistic: true
+    min_value: -15.0
+    max_value: 0.0
+    step: 1.0
+    initial_value: -3.0
+  - platform: template
+    id: enter_defrost_temperature_3
+    optimistic: true
+    min_value: -15.0
+    max_value: 0.0
+    step: 1.0
+    initial_value: -5.0
+  - platform: template
+    id: enter_defrost_temperature_4
+    optimistic: true
+    min_value: -15.0
+    max_value: 0.0
+    step: 1.0
+    initial_value: -12.0
+  - platform: template
+    id: fan_speed_manual_number
+    name: "Ventilatorsnelheid handmatig"
+    optimistic: true
+    min_value: 0.0
+    max_value: 1000.0
+    step: 10.0
+    initial_value: 0.0
+  - platform: template
+    id: pump_control_pwm_number
+    name: "Pomp P0 gewenste PWM"
+    optimistic: true
+    min_value: 0.0
+    max_value: 1000.0
+    step: 1.0
+    initial_value: 1000.0
+switch:
+  - platform: template
+    id: pump_p0_relay_switch
+    name: "Pomp P0 relais"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: pump_p1_relay_switch
+    name: "Pomp P1 relais"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: pump_p2_relay_switch
+    name: "Pomp P2 relais"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: dhw_pump_relay_switch
+    name: "Tapwater pomp relais"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: initialize_relay_switch
+    name: "Initialize relay"
+    optimistic: true
+  - platform: template
+    id: backup_heater_stage_1
+    name: "Backup heater stage 1"
+    optimistic: true
+  - platform: template
+    id: backup_heater_stage_2
+    name: "Backup heater stage 2"
+    optimistic: true
+  - platform: template
+    id: external_backup_heating_relay
+    name: "Externe bijverwarming relais"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: compressor_crankcase_heater_manual_switch
+    name: "Carterverwarming"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: bottom_plate_heater_manual_switch
+    name: "Bodemplaatverwarming"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: mock_three_way_valve_feedback_missing
+    # Simulator only: keeps the relay feedback (1305/1312) off, as if the inside unit ignores the valve command.
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: three_way_valve_heat_cool_switch
+    name: "Driewegklep verwarmen/koelen"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+  - platform: template
+    id: three_way_valve_dhw_switch
+    name: "Driewegklep tapwater"
+    optimistic: true
+    turn_on_action: []
+    turn_off_action: []
+select:
+  - platform: template
+    id: compressor_control_select
+    name: "Compressor stand (Buiten)"
+    optimistic: true
+    options:
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+      - "10"
+    initial_option: "0"
+  - platform: template
+    id: working_mode_switch
+    name: "Bedrijfsmodus"
+    optimistic: true
+    options:
+      - "Standby"
+      - "Koelen"
+      - "Verwarmen"
+      - "Onderhoud"
+    initial_option: "Verwarmen"
+  - platform: template
+    id: bottomplate_heater_mode
+    name: "Bodemplaat verwarmingsmodus"
+    optimistic: true
+    options:
+      - "Onbekend"
+      - "Buitentemperatuur"
+      - "Tijdens defrost"
+    initial_option: "Buitentemperatuur"
+
+script:
+  - id: fetch_analytics_device_id
+    then: []
+  - id: send_analytics
+    then: []
+  - id: dump_eeprom_parameters
+    then: []
+  - id: dump_eeprom_parameters_ui_disable
+    then: []
+  - id: dump_eeprom_parameters_ui_enable
+    then: []
+
+text_sensor:
+  - platform: template
+    id: system_debug_device_info
+    name: "Apparaatinfo"
+    lambda: 'return std::string("OpenAmber Host Simulator");'
+  - platform: template
+    id: system_debug_reset_reason
+    name: "Herstartreden"
+    lambda: 'return std::string("Power-on reset");'

@@ -1,0 +1,285 @@
+# ══════════════════════════════════════════════════════════════
+# Select → LVGL UI bindings (event-driven via !extend)
+# These extend selects defined in common/selects.yaml to add
+# on_value callbacks that update LVGL widgets on change.
+# ══════════════════════════════════════════════════════════════
+
+# ── Home page: Working mode chip ──
+- id: !extend working_mode_switch
+  on_value:
+    then:
+      - lvgl.label.update:
+          id: water_mode_text
+          text: !lambda |-
+            return id(working_mode_switch).current_option().c_str();
+      - lvgl.label.update:
+          id: water_mode_icon
+          text: !lambda |-
+            auto idx = id(working_mode_switch).active_index();
+            if (!idx.has_value()) return (std::string) "\U000F0906";
+            switch (idx.value()) {
+              case 0: return (std::string) "\U000F0906";
+              case 1: return (std::string) "\U000F0717";
+              case 2: return (std::string) "\U000F0238";
+              default: return (std::string) "\U000F0906";
+            }
+      - lvgl.widget.update:
+          id: water_mode_chip
+          bg_color: !lambda |-
+            auto idx = id(working_mode_switch).active_index();
+            if (!idx.has_value()) return lv_color_hex(0xE5E7EB);
+            switch (idx.value()) {
+              case 0: return lv_color_hex(0xB0B3B8);
+              case 1: return lv_color_hex(0x0072CE);
+              case 2: return lv_color_hex(0xF97316);
+              default: return lv_color_hex(0xE5E7EB);
+            }
+      - script.execute: update_water_mode_temperature_display
+      - script.execute: update_water_mode_efficiency_display
+
+# ── Settings: Thermostat dropdown ──
+- id: !extend thermostat_mode_select
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(thermostat_mode_select).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_thermostat_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_thermostat_dd
+                selected_index: !lambda |-
+                  auto idx = id(thermostat_mode_select).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+      - script.execute: update_thermostat_mode_ui
+      - script.execute: update_home_thermostat_mode_ui
+
+# ── Settings: Heat mode dropdown + heat curve visibility ──
+- id: !extend heat_mode_select
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(heat_mode_select).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_heat_mode_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_heat_mode_dd
+                selected_index: !lambda |-
+                  auto idx = id(heat_mode_select).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+      - script.execute: update_manual_setpoint_ui
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(heat_mode_select).active_index();
+              return idx.has_value() && idx.value() == 0;
+          then:
+            - lvgl.widget.show: { id: set_heat_curve_title }
+            - lvgl.widget.show: { id: set_heat_curve_chart_container }
+            - lvgl.widget.show: { id: set_heat_curve_controls_container }
+          else:
+            - lvgl.widget.hide: { id: set_heat_curve_title }
+            - lvgl.widget.hide: { id: set_heat_curve_chart_container }
+            - lvgl.widget.hide: { id: set_heat_curve_controls_container }
+
+# ── Settings: Control temperature source dropdown ──
+- id: !extend heat_cool_control_temperature_source_select
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              bool mv_active = id(mixing_valve_zone1_enabled).state || id(mixing_valve_zone2_enabled).state;
+              if (mv_active) {
+                if (id(set_heat_control_temp_source_dd) && id(set_heat_control_temp_source_dd)->obj) {
+                  lv_dropdown_set_selected(id(set_heat_control_temp_source_dd)->obj, 0);
+                  lv_obj_add_state(id(set_heat_control_temp_source_dd)->obj, LV_STATE_DISABLED);
+                }
+                return false;
+              }
+              auto idx = id(heat_cool_control_temperature_source_select).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_heat_control_temp_source_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_heat_control_temp_source_dd
+                selected_index: !lambda |-
+                  auto idx = id(heat_cool_control_temperature_source_select).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+
+# ── Settings: Screen-off timeout dropdown ──
+- id: !extend display_screen_timeout_select
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(display_screen_timeout_select).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_display_screen_timeout_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_display_screen_timeout_dd
+                selected_index: !lambda |-
+                  auto idx = id(display_screen_timeout_select).active_index();
+                  return idx.has_value() ? idx.value() : 2;
+
+# ── Settings: Backup heating mode dropdown ──
+- id: !extend backup_heating_mode
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(backup_heating_mode).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_backup_heating_mode_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_backup_heating_mode_dd
+                selected_index: !lambda |-
+                  auto idx = id(backup_heating_mode).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+
+# ── Settings: Bottomplate mode dropdown ──
+- id: !extend bottomplate_heater_mode
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(bottomplate_heater_mode).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_bottomplate_mode_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_bottomplate_mode_dd
+                selected_index: !lambda |-
+                  auto idx = id(bottomplate_heater_mode).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+      - script.execute: update_bottomplate_mode_ui
+
+# ── Settings: Silent mode power dropdown ──
+- id: !extend silent_mode_compressor_mode
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(silent_mode_compressor_mode).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_silent_mode_power_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_silent_mode_power_dd
+                selected_index: !lambda |-
+                  auto idx = id(silent_mode_compressor_mode).active_index();
+                  return idx.has_value() ? idx.value() : 3;
+
+# ── Settings: Heat power dropdown ──
+- id: !extend heat_compressor_mode
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(heat_compressor_mode).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_heat_power_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_heat_power_dd
+                selected_index: !lambda |-
+                  auto idx = id(heat_compressor_mode).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+
+# ── Settings: Cooling mode dropdown ──
+- id: !extend cool_mode_select
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(cool_mode_select).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_cool_mode_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_cool_mode_dd
+                selected_index: !lambda |-
+                  auto idx = id(cool_mode_select).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+      - script.execute: update_manual_setpoint_ui
+
+# ── Settings: Cooling power dropdown ──
+- id: !extend cool_compressor_mode
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(cool_compressor_mode).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_cool_power_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_cool_power_dd
+                selected_index: !lambda |-
+                  auto idx = id(cool_compressor_mode).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+
+# ── Settings: DHW base power dropdown ──
+- id: !extend dhw_compressor_mode
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(dhw_compressor_mode).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_dhw_power_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_dhw_power_dd
+                selected_index: !lambda |-
+                  auto idx = id(dhw_compressor_mode).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+
+# ── Settings: DHW winter power dropdown ──
+- id: !extend dhw_compressor_mode_max
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(dhw_compressor_mode_max).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_dhw_winter_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_dhw_winter_dd
+                selected_index: !lambda |-
+                  auto idx = id(dhw_compressor_mode_max).active_index();
+                  return idx.has_value() ? idx.value() : 0;
+
+# ── Settings: DHW pump start mode dropdown ──
+- id: !extend dhw_pump_start_mode_select
+  on_value:
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto idx = id(dhw_pump_start_mode_select).active_index();
+              if (!idx.has_value()) return false;
+              return lv_dropdown_get_selected(id(set_dhw_pump_dd)->obj) != (uint16_t) idx.value();
+          then:
+            - lvgl.dropdown.update:
+                id: set_dhw_pump_dd
+                selected_index: !lambda |-
+                  auto idx = id(dhw_pump_start_mode_select).active_index();
+                  return idx.has_value() ? idx.value() : 0;
